@@ -1,0 +1,38 @@
+name: Build and Deploy Calendar
+
+on:
+  push:
+    paths:
+      - '**.xlsx'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pandas openpyxl
+
+      - name: Build calendar
+        run: python generate_calendar.py
+
+      - name: Commit and push HTML
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add KZNA_Calendar.html
+          git diff --cached --quiet || git commit -m "rebuild calendar from updated Excel"
+          git push
