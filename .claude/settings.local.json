@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir -la \"c:\\\\KZNACalendar\")",
+      "Bash(grep -E '\\\\.\\(html|json|py|xlsx\\)$')"
+    ]
+  }
+}
