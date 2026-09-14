@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LCM to SCM Formula Check</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --deck: #eef2f3;
+    --surface: #ffffff;
+    --surface-alt: #e4ebed;
+    --ink: #0f2029;
+    --mist: #55707b;
+    --pool: #0b4f6c;
+    --pool-strong: #073a52;
+    --pool-soft: #dcebf1;
+    --lane-yellow: #e0a800;
+    --lane-yellow-soft: #fdf1cf;
+    --border: #cfdbdf;
+    --shadow: 0 1px 2px rgba(9, 30, 40, 0.06), 0 10px 26px rgba(9, 30, 40, 0.06);
+    /* Fixed scoreboard colours - deliberately NOT redefined per theme, so
+       the header/table-head band stays a deep navy with light text in both
+       light and dark mode, instead of --pool-strong's dark-mode value
+       (a pale accent blue meant for text on a dark ground) washing it out. */
+    --header-bg: #073a52;
+    --header-fg: #eaf6fb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --deck: #071923;
+      --surface: #0e2733;
+      --surface-alt: #123443;
+      --ink: #e8f2f5;
+      --mist: #93aab3;
+      --pool: #55c2ea;
+      --pool-strong: #8bd8f4;
+      --pool-soft: #133647;
+      --lane-yellow: #ffcf3f;
+      --lane-yellow-soft: #2c260f;
+      --border: #1e404e;
+      --shadow: 0 1px 2px rgba(0,0,0,0.35), 0 14px 30px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --deck: #071923;
+    --surface: #0e2733;
+    --surface-alt: #123443;
+    --ink: #e8f2f5;
+    --mist: #93aab3;
+    --pool: #55c2ea;
+    --pool-strong: #8bd8f4;
+    --pool-soft: #133647;
+    --lane-yellow: #ffcf3f;
+    --lane-yellow-soft: #2c260f;
+    --border: #1e404e;
+    --shadow: 0 1px 2px rgba(0,0,0,0.35), 0 14px 30px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--deck);
+    color: var(--ink);
+    font-family: "Work Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    padding-inline: 20px;
+    padding-block: 30px 70px;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+
+  h1 {
+    font-family: "Bebas Neue", "Work Sans", sans-serif;
+    letter-spacing: 0.02em;
+    text-wrap: balance;
+    font-weight: 400;
+  }
+
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--pool);
+    font-weight: 600;
+  }
+
+  /* ── lane-rope divider: alternating blue/yellow floats standing in for a
+     plain hairline. ── */
+  .lane-rope { display: flex; align-items: center; gap: 10px; height: 6px; }
+  .lane-rope::before, .lane-rope::after { content: ""; flex: 1; height: 2px; background: var(--border); }
+  .lane-rope .floats { display: flex; gap: 10px; }
+  .lane-rope .float { width: 9px; height: 9px; border-radius: 50%; }
+  .lane-rope .float:nth-child(4n+1), .lane-rope .float:nth-child(4n+2) { background: var(--pool); }
+  .lane-rope .float:nth-child(4n+3), .lane-rope .float:nth-child(4n+4) { background: var(--lane-yellow); }
+
+  header.top {
+    display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 24px;
+  }
+  .title-block { display: flex; flex-direction: column; gap: 6px; }
+  h1 { font-size: clamp(32px, 6vw, 48px); margin: 0; color: var(--pool-strong); line-height: 0.97; }
+
+  .theme-toggle {
+    font-family: "Work Sans", sans-serif; font-size: 13px; font-weight: 600;
+    padding: 8px 14px; border-radius: 999px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--pool-strong); cursor: pointer;
+    white-space: nowrap;
+  }
+  .theme-toggle:hover { border-color: var(--pool); }
+
+  .key {
+    display: flex; flex-direction: column; gap: 6px; margin: 0;
+    padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  }
+  .key > div { display: flex; align-items: baseline; gap: 6px; }
+  .key dt {
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; font-weight: 700;
+    color: var(--pool-strong); background: var(--pool-soft); padding: 1px 6px; border-radius: 3px;
+  }
+  .key dd { margin: 0; font-size: 12.5px; color: var(--mist); }
+
+  .controls { display: flex; flex-direction: column; gap: 10px; }
+  .controls input[type="search"], .controls select {
+    font-family: "Work Sans", sans-serif; font-size: 13.5px; padding: 8px 12px;
+    border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--ink);
+  }
+  .controls .search-row { width: 100%; }
+  .filter-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .controls .count { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--mist); margin-left: auto; }
+
+  /* ── the table itself: fixed layout + wrapping cells, so column widths
+     are stable, headers always sit directly above their own data, and
+     nothing ever forces a horizontal scrollbar. ── */
+  .table-frame {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    box-shadow: var(--shadow); overflow: hidden;
+  }
+  .table-scroll { max-height: 640px; overflow-y: auto; }
+  table {
+    width: 100%; border-collapse: collapse; table-layout: fixed;
+  }
+  col.c-standard { width: 26%; }
+  col.c-event    { width: 20%; }
+  col.c-age      { width: 10%; }
+  col.c-sex      { width: 10%; }
+  col.c-lc       { width: 17%; }
+  col.c-app      { width: 17%; }
+
+  thead th {
+    position: sticky; top: 0;
+    background: var(--header-bg); color: var(--header-fg);
+    text-align: left; font-family: "IBM Plex Mono", monospace; font-size: 10px;
+    letter-spacing: 0.04em; text-transform: uppercase; line-height: 1.4;
+    padding: 18px 10px; word-break: break-word; white-space: normal;
+    cursor: pointer; user-select: none;
+  }
+  thead th:hover { color: var(--lane-yellow); }
+  thead th.num { text-align: center; }
+  .sort-arrow { display: inline-block; margin-left: 3px; opacity: 0.6; }
+  .sort-arrow:empty { margin-left: 0; }
+  tbody td {
+    padding: 8px 10px; border-bottom: 1px solid var(--border);
+    font-size: 13px; word-break: break-word; vertical-align: middle;
+  }
+  tbody td.num {
+    text-align: right; font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums; font-weight: 600;
+  }
+  tbody tr:nth-child(even) { background: var(--surface-alt); }
+  tbody tr:last-child td { border-bottom: none; }
+  .std-name { display: block; }
+  .event-name { font-weight: 600; }
+
+  tr.group-row { cursor: pointer; }
+  tr.group-row td {
+    background: var(--pool-soft); color: var(--pool-strong);
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    padding: 7px 10px; border-bottom: 1px solid var(--border);
+  }
+  tr.group-row:hover td { background: var(--lane-yellow-soft); }
+  tr.group-row:first-child td { border-top: none; }
+  .group-chevron { display: inline-block; width: 1em; margin-right: 6px; }
+  .group-count { font-weight: 400; color: var(--mist); text-transform: none; letter-spacing: 0; margin-left: 6px; }
+
+  .how-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    box-shadow: var(--shadow); padding: 20px 22px 24px; display: flex; flex-direction: column; gap: 12px;
+  }
+  .how-card h2 { font-size: 24px; margin: 0; color: var(--pool-strong); }
+  .how-card h3 { font-family: "Work Sans", sans-serif; font-size: 13.5px; font-weight: 700; margin: 6px 0 0; color: var(--ink); }
+  .how-note { color: var(--mist); font-size: 13.5px; max-width: 72ch; margin: 0; }
+  .how-table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+  table.how-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  table.how-table th {
+    text-align: left; font-family: "IBM Plex Mono", monospace; font-size: 10px;
+    letter-spacing: 0.05em; text-transform: uppercase; color: var(--header-fg);
+    background: var(--header-bg); padding: 9px 12px; word-break: break-word;
+  }
+  table.how-table th.num { text-align: right; }
+  table.how-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 13.5px; word-break: break-word; }
+  table.how-table td.num { text-align: right; font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; font-weight: 600; }
+  table.how-table tbody tr:nth-child(even) { background: var(--surface-alt); }
+  table.how-table tbody tr:last-child td { border-bottom: none; }
+
+  #calc-rows { display: flex; flex-direction: column; gap: 14px; }
+  .calc-row + .calc-row { padding-top: 14px; border-top: 1px dashed var(--border); }
+  .calc-row { display: flex; flex-direction: column; gap: 10px; }
+  .calc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) auto; gap: 12px; align-items: end; }
+  .calc-grid label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; font-weight: 600; color: var(--mist); min-width: 0; }
+  .calc-grid select, .calc-grid input {
+    font-family: "Work Sans", sans-serif; font-size: 14px; padding: 9px 11px; width: 100%; min-width: 0;
+    border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--ink);
+  }
+  .calc-grid input { font-family: "IBM Plex Mono", monospace; }
+  .calc-remove {
+    width: 38px; height: 38px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--flag-red, #b6303c); font-size: 18px; line-height: 1;
+    cursor: pointer;
+  }
+  .calc-remove:hover { border-color: var(--pool); }
+  .calc-add-btn {
+    align-self: flex-start; font-family: "Work Sans", sans-serif; font-size: 13.5px; font-weight: 600;
+    padding: 9px 16px; border-radius: 6px; border: 1px dashed var(--pool); background: var(--pool-soft);
+    color: var(--pool-strong); cursor: pointer;
+  }
+  .calc-add-btn:hover { background: var(--surface-alt); }
+  .calc-result {
+    background: var(--header-bg); color: var(--header-fg); border-radius: 8px;
+    padding: 16px 18px; display: flex; flex-direction: column; gap: 4px;
+  }
+  .calc-answer { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; font-size: 30px; font-weight: 700; }
+  .calc-detail { font-size: 12.5px; color: #bfe3f2; }
+  .calc-error { font-size: 14px; color: var(--lane-yellow); font-weight: 600; }
+
+  footer.foot { color: var(--mist); font-size: 11.5px; text-align: center; display: flex; flex-direction: column; gap: 4px; }
+  footer.foot a { color: var(--mist); text-decoration: underline; }
+  footer.foot a:hover { color: var(--pool); }
+  footer.foot .fine-print { font-size: 10.5px; opacity: 0.85; }
+
+  /* ── mobile card list: the phone-width stand-in for the table, one card
+     per row instead of seven cramped columns. Hidden on wider screens,
+     where the real table takes over instead. ── */
+  .mobile-cards { display: none; flex-direction: column; gap: 10px; }
+  .mcard {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    box-shadow: var(--shadow); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .mcard-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .mcard-event { font-weight: 700; font-size: 15px; }
+  .mcard-standard { font-size: 11px; color: var(--mist); text-align: right; }
+  .mcard-tags { display: flex; gap: 6px; }
+  .tag {
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; padding: 2px 8px;
+    border-radius: 999px; background: var(--surface-alt); color: var(--mist); white-space: nowrap;
+  }
+  .mcard-times {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
+    border-top: 1px dashed var(--border); padding-top: 8px;
+  }
+  .mcard-time { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .mcard-label {
+    font-family: "IBM Plex Mono", monospace; font-size: 9px; letter-spacing: 0.04em;
+    text-transform: uppercase; color: var(--mist); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .mcard-value { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 700; }
+  .mcard-group {
+    background: var(--pool-soft); color: var(--pool-strong); border-radius: 8px;
+    padding: 10px 14px; font-family: "IBM Plex Mono", monospace; font-size: 11.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: flex; align-items: center;
+  }
+
+  @media (max-width: 680px) {
+    .table-frame { display: none; }
+    .mobile-cards { display: flex; }
+    .filter-row { flex-direction: column; align-items: stretch; }
+    .filter-row select { width: 100%; }
+    .filter-row .count { margin-left: 0; text-align: right; }
+  }
+
+  @media (max-width: 480px) {
+    header.top { align-items: flex-start; }
+  }
+</style>
+
+
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="title-block">
+      <span class="eyebrow">Qualifying Times</span>
+      <h1>Long Course vs Short Course</h1>
+    </div>
+    <button type="button" id="theme-toggle" class="theme-toggle">Light mode</button>
+  </header>
+
+  <section class="how-card">
+    <h2>Conversion Calculator</h2>
+    <p class="how-note">Enter any time to convert it using the exact same formula as the table below. Add another row to calculate more than one at a time.</p>
+    <div id="calc-rows"></div>
+    <button type="button" id="calc-add-row" class="calc-add-btn">+ Add Another Calculation</button>
+  </section>
+
+  <div class="lane-rope"><div class="floats"><div class="float"></div><div class="float"></div><div class="float"></div><div class="float"></div><div class="float"></div><div class="float"></div></div></div>
+
+  <dl class="key">
+    <div><dt>LCM</dt><dd>Long Course Meters &mdash; 50m pool</dd></div>
+    <div><dt>SCM</dt><dd>Short Course Meters &mdash; 25m pool</dd></div>
+  </dl>
+
+  <div class="controls">
+    <input type="search" id="search" class="search-row" placeholder="Search anything &mdash; list, event, age, gender, time&hellip;">
+    <div class="filter-row">
+      <select id="standard-filter"><option value="">All qualifying lists</option></select>
+      <select id="stroke-filter"><option value="">All strokes</option></select>
+      <select id="gender-filter">
+        <option value="">Male &amp; Female</option>
+        <option value="M">Male</option>
+        <option value="F">Female</option>
+      </select>
+      <select id="age-filter"><option value="">All ages</option></select>
+      <select id="group-by">
+        <option value="">No grouping</option>
+        <option value="stroke">Group by stroke</option>
+        <option value="standard">Group by qualifying list</option>
+        <option value="age">Group by age</option>
+        <option value="gender">Group by sex</option>
+      </select>
+      <span class="count" id="row-count"></span>
+    </div>
+  </div>
+
+  <div class="table-frame">
+    <div class="table-scroll">
+      <table>
+        <colgroup>
+          <col class="c-standard"><col class="c-event"><col class="c-age"><col class="c-sex">
+          <col class="c-lc"><col class="c-app">
+        </colgroup>
+        <thead>
+          <tr>
+            <th data-key="standard">Qualifying List<span class="sort-arrow"></span></th>
+            <th data-key="event">Event<span class="sort-arrow"></span></th>
+            <th data-key="age">Age<span class="sort-arrow"></span></th>
+            <th data-key="gender">Sex<span class="sort-arrow"></span></th>
+            <th class="num" data-key="lcm">LCM<span class="sort-arrow"></span></th>
+            <th class="num" data-key="appScm">SCM Time<span class="sort-arrow"></span></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Phone-width fallback for the table above - a plain grid of columns
+       gets unreadably cramped under ~400px, so each row becomes its own
+       card instead. Both are always kept populated; a media query below
+       decides which one is actually visible, so there's nothing to
+       recompute on resize/rotate. -->
+  <div class="mobile-cards" id="mobile-cards"></div>
+
+  <section class="how-card">
+    <h2>How does the conversion work?</h2>
+    <p class="how-note">
+      A 25m pool has more turns than a 50m pool, and each turn gives the swimmer a small
+      advantage through the push-off.
+    </p>
+    <p class="how-note">
+      The formula is simple: count the extra turns in the 25m swim and subtract the estimated
+      time gained from those turns. This gives an equivalent 50m-pool time, making the two swims
+      easier to compare fairly.
+    </p>
+
+    <h3>Seconds saved per extra turn</h3>
+    <div class="how-table-scroll">
+      <table class="how-table">
+        <thead><tr><th>Stroke</th><th class="num">Seconds Per Turn</th></tr></thead>
+        <tbody>
+          <tr><td>Freestyle</td><td class="num">0.8s</td></tr>
+          <tr><td>Backstroke</td><td class="num">0.6s</td></tr>
+          <tr><td>Breaststroke</td><td class="num">1.0s</td></tr>
+          <tr><td>Butterfly</td><td class="num">0.7s</td></tr>
+          <tr><td>Individual Medley</td><td class="num">0.8s</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Worked example &mdash; every event on this page</h3>
+    <p class="how-note">
+      Extra turns is always the event's distance divided by 50. Multiply that by the stroke's
+      seconds-per-turn above, and that's the number subtracted from the Long Course time to get
+      the Short Course time.
+    </p>
+    <div class="how-table-scroll">
+      <table class="how-table">
+        <thead><tr><th>Event</th><th class="num">Extra Turns</th><th class="num">Seconds Subtracted</th></tr></thead>
+        <tbody id="how-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span>
+      <a href="https://hytek.active.com/User_Guides_HTML/SwTM7/HTML/courseconversion.htm" target="_blank" rel="noopener">Hy-Tek Meet Manager &mdash; Course Conversion</a>
+      &middot; <a href="https://github.com/Stanback/php-swim-time-conversion" target="_blank" rel="noopener">github.com/Stanback/php-swim-time-conversion</a>
+    </span>
+    <span class="fine-print">Conversions based on the Stanback, Colorado, and Hy-Tek course-conversion formulas.</span>
+    <span class="fine-print">These times and formulas are based on publicly available information and may not be 100% accurate. Always confirm official qualifying times and converted times with your federation.</span>
+  </footer>
+</div>
+
+<script>
+  // Manual light/dark toggle, on top of the system-preference theme this
+  // page already supports - remembered per browser via localStorage (falls
+  // back silently to just following the system theme if storage is
+  // unavailable, e.g. a private window).
+  (function () {
+    const toggle = document.getElementById("theme-toggle");
+    function isDark() {
+      const attr = document.documentElement.getAttribute("data-theme");
+      if (attr === "dark") return true;
+      if (attr === "light") return false;
+      return window.matchMedia("(prefers-color-scheme: dark)").matches;
+    }
+    function applyTheme(theme) {
+      if (theme) document.documentElement.setAttribute("data-theme", theme);
+      else document.documentElement.removeAttribute("data-theme");
+      toggle.textContent = isDark() ? "Light mode" : "Dark mode";
+    }
+    let saved = null;
+    try { saved = localStorage.getItem("qualTimesTheme"); } catch (e) {}
+    applyTheme(saved);
+    toggle.addEventListener("click", () => {
+      const next = isDark() ? "light" : "dark";
+      applyTheme(next);
+      try { localStorage.setItem("qualTimesTheme", next); } catch (e) {}
+    });
+  })();
+
+  const ROWS = [{"standard":"SA Senior National Aquatic Championships","stroke":"Backstroke","distance":50,"ageGroup":"","gender":"M","lcm":27.54,"appScm":26.94,"coScm":26.94,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Backstroke","distance":50,"ageGroup":"","gender":"F","lcm":31.41,"appScm":30.81,"coScm":30.81,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Breaststroke","distance":50,"ageGroup":"","gender":"M","lcm":30.35,"appScm":29.35,"coScm":29.35,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Breaststroke","distance":50,"ageGroup":"","gender":"F","lcm":34.1,"appScm":33.1,"coScm":33.1,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Butterfly","distance":50,"ageGroup":"","gender":"M","lcm":26.04,"appScm":25.34,"coScm":25.34,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Butterfly","distance":50,"ageGroup":"","gender":"F","lcm":28.57,"appScm":27.87,"coScm":27.87,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Freestyle","distance":50,"ageGroup":"","gender":"M","lcm":24.2,"appScm":23.4,"coScm":23.4,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Freestyle","distance":50,"ageGroup":"","gender":"F","lcm":27.32,"appScm":26.52,"coScm":26.52,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Backstroke","distance":100,"ageGroup":"","gender":"M","lcm":60.35,"appScm":59.15,"coScm":59.15,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Backstroke","distance":100,"ageGroup":"","gender":"F","lcm":66.81,"appScm":65.61,"coScm":65.61,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Breaststroke","distance":100,"ageGroup":"","gender":"M","lcm":66.52,"appScm":64.52,"coScm":64.52,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Breaststroke","distance":100,"ageGroup":"","gender":"F","lcm":75,"appScm":73,"coScm":73,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Butterfly","distance":100,"ageGroup":"","gender":"M","lcm":57.83,"appScm":56.43,"coScm":56.43,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Butterfly","distance":100,"ageGroup":"","gender":"F","lcm":63.86,"appScm":62.46,"coScm":62.46,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Freestyle","distance":100,"ageGroup":"","gender":"M","lcm":53.7,"appScm":52.1,"coScm":52.1,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Freestyle","distance":100,"ageGroup":"","gender":"F","lcm":59.84,"appScm":58.24,"coScm":58.24,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Backstroke","distance":200,"ageGroup":"","gender":"M","lcm":130.9,"appScm":128.5,"coScm":128.5,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Backstroke","distance":200,"ageGroup":"","gender":"F","lcm":144.02,"appScm":141.62,"coScm":141.62,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Breaststroke","distance":200,"ageGroup":"","gender":"M","lcm":146.76,"appScm":142.76,"coScm":142.76,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Breaststroke","distance":200,"ageGroup":"","gender":"F","lcm":160.87,"appScm":156.87,"coScm":156.87,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Butterfly","distance":200,"ageGroup":"","gender":"M","lcm":129.05,"appScm":126.25,"coScm":126.25,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Butterfly","distance":200,"ageGroup":"","gender":"F","lcm":142.46,"appScm":139.66,"coScm":139.66,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Freestyle","distance":200,"ageGroup":"","gender":"M","lcm":118.05,"appScm":114.85,"coScm":114.85,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Freestyle","distance":200,"ageGroup":"","gender":"F","lcm":129.89,"appScm":126.69,"coScm":126.69,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Individual Medley","distance":200,"ageGroup":"","gender":"M","lcm":131.8,"appScm":128.6,"coScm":128.6,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Individual Medley","distance":200,"ageGroup":"","gender":"F","lcm":147.01,"appScm":143.81,"coScm":143.81,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Freestyle","distance":400,"ageGroup":"","gender":"M","lcm":257.26,"appScm":250.86,"coScm":250.86,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Freestyle","distance":400,"ageGroup":"","gender":"F","lcm":273.89,"appScm":267.49,"coScm":267.49,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Individual Medley","distance":400,"ageGroup":"","gender":"M","lcm":283.62,"appScm":277.22,"coScm":277.22,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Individual Medley","distance":400,"ageGroup":"","gender":"F","lcm":308.36,"appScm":301.96,"coScm":301.96,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Freestyle","distance":800,"ageGroup":"","gender":"M","lcm":528.8,"appScm":516,"coScm":516,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Freestyle","distance":800,"ageGroup":"","gender":"F","lcm":566.23,"appScm":553.43,"coScm":553.43,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Freestyle","distance":1500,"ageGroup":"","gender":"M","lcm":1018.34,"appScm":994.34,"coScm":994.34,"delta":0},{"standard":"SA Senior National Aquatic Championships","stroke":"Freestyle","distance":1500,"ageGroup":"","gender":"F","lcm":1076.59,"appScm":1052.59,"coScm":1052.59,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Backstroke","distance":100,"ageGroup":"12&U","gender":"M","lcm":74.66,"appScm":73.46,"coScm":73.46,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Backstroke","distance":100,"ageGroup":"12&U","gender":"F","lcm":72.98,"appScm":71.78,"coScm":71.78,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Backstroke","distance":100,"ageGroup":"13","gender":"M","lcm":71.87,"appScm":70.67,"coScm":70.67,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Backstroke","distance":100,"ageGroup":"13","gender":"F","lcm":74.83,"appScm":73.63,"coScm":73.63,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Backstroke","distance":100,"ageGroup":"14","gender":"M","lcm":67.33,"appScm":66.13,"coScm":66.13,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Backstroke","distance":100,"ageGroup":"14","gender":"F","lcm":72.46,"appScm":71.26,"coScm":71.26,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Backstroke","distance":100,"ageGroup":"15","gender":"M","lcm":63.36,"appScm":62.16,"coScm":62.16,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Backstroke","distance":100,"ageGroup":"15","gender":"F","lcm":71.97,"appScm":70.77,"coScm":70.77,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Backstroke","distance":100,"ageGroup":"16","gender":"M","lcm":62.97,"appScm":61.77,"coScm":61.77,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Backstroke","distance":100,"ageGroup":"16","gender":"F","lcm":71.04,"appScm":69.84,"coScm":69.84,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Breaststroke","distance":100,"ageGroup":"12&U","gender":"M","lcm":82.31,"appScm":80.31,"coScm":80.31,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Breaststroke","distance":100,"ageGroup":"12&U","gender":"F","lcm":85.63,"appScm":83.63,"coScm":83.63,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Breaststroke","distance":100,"ageGroup":"13","gender":"M","lcm":80.71,"appScm":78.71,"coScm":78.71,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Breaststroke","distance":100,"ageGroup":"13","gender":"F","lcm":83.99,"appScm":81.99,"coScm":81.99,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Breaststroke","distance":100,"ageGroup":"14","gender":"M","lcm":75.35,"appScm":73.35,"coScm":73.35,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Breaststroke","distance":100,"ageGroup":"14","gender":"F","lcm":81.34,"appScm":79.34,"coScm":79.34,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Breaststroke","distance":100,"ageGroup":"15","gender":"M","lcm":71.66,"appScm":69.66,"coScm":69.66,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Breaststroke","distance":100,"ageGroup":"15","gender":"F","lcm":80.79,"appScm":78.79,"coScm":78.79,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Breaststroke","distance":100,"ageGroup":"16","gender":"M","lcm":70.73,"appScm":68.73,"coScm":68.73,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Breaststroke","distance":100,"ageGroup":"16","gender":"F","lcm":79.74,"appScm":77.74,"coScm":77.74,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Butterfly","distance":100,"ageGroup":"12&U","gender":"M","lcm":72.29,"appScm":70.89,"coScm":70.89,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Butterfly","distance":100,"ageGroup":"12&U","gender":"F","lcm":74.73,"appScm":73.33,"coScm":73.33,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Butterfly","distance":100,"ageGroup":"13","gender":"M","lcm":70.16,"appScm":68.76,"coScm":68.76,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Butterfly","distance":100,"ageGroup":"13","gender":"F","lcm":73.19,"appScm":71.79,"coScm":71.79,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Butterfly","distance":100,"ageGroup":"14","gender":"M","lcm":65.51,"appScm":64.11,"coScm":64.11,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Butterfly","distance":100,"ageGroup":"14","gender":"F","lcm":72.9,"appScm":71.5,"coScm":71.5,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Butterfly","distance":100,"ageGroup":"15","gender":"M","lcm":62.3,"appScm":60.9,"coScm":60.9,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Butterfly","distance":100,"ageGroup":"15","gender":"F","lcm":72.33,"appScm":70.93,"coScm":70.93,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Butterfly","distance":100,"ageGroup":"16","gender":"M","lcm":61.49,"appScm":60.09,"coScm":60.09,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Butterfly","distance":100,"ageGroup":"16","gender":"F","lcm":71.78,"appScm":70.38,"coScm":70.38,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":100,"ageGroup":"12&U","gender":"M","lcm":63.5,"appScm":61.9,"coScm":61.9,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":100,"ageGroup":"12&U","gender":"F","lcm":67.98,"appScm":66.38,"coScm":66.38,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":100,"ageGroup":"13","gender":"M","lcm":62.45,"appScm":60.85,"coScm":60.85,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":100,"ageGroup":"13","gender":"F","lcm":66.74,"appScm":65.14,"coScm":65.14,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":100,"ageGroup":"14","gender":"M","lcm":58.85,"appScm":57.25,"coScm":57.25,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":100,"ageGroup":"14","gender":"F","lcm":65.15,"appScm":63.55,"coScm":63.55,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":100,"ageGroup":"15","gender":"M","lcm":56.29,"appScm":54.69,"coScm":54.69,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":100,"ageGroup":"15","gender":"F","lcm":64.3,"appScm":62.7,"coScm":62.7,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":100,"ageGroup":"16","gender":"M","lcm":55.96,"appScm":54.36,"coScm":54.36,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":100,"ageGroup":"16","gender":"F","lcm":63.89,"appScm":62.29,"coScm":62.29,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Backstroke","distance":200,"ageGroup":"12&U","gender":"M","lcm":161.95,"appScm":159.55,"coScm":159.55,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Backstroke","distance":200,"ageGroup":"12&U","gender":"F","lcm":164.43,"appScm":162.03,"coScm":162.03,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Backstroke","distance":200,"ageGroup":"13","gender":"M","lcm":155.89,"appScm":153.49,"coScm":153.49,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Backstroke","distance":200,"ageGroup":"13","gender":"F","lcm":161.29,"appScm":158.89,"coScm":158.89,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Backstroke","distance":200,"ageGroup":"14","gender":"M","lcm":146.05,"appScm":143.65,"coScm":143.65,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Backstroke","distance":200,"ageGroup":"14","gender":"F","lcm":156.19,"appScm":153.79,"coScm":153.79,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Backstroke","distance":200,"ageGroup":"15","gender":"M","lcm":137.43,"appScm":135.03,"coScm":135.03,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Backstroke","distance":200,"ageGroup":"15","gender":"F","lcm":155.14,"appScm":152.74,"coScm":152.74,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Backstroke","distance":200,"ageGroup":"16","gender":"M","lcm":136.6,"appScm":134.2,"coScm":134.2,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Backstroke","distance":200,"ageGroup":"16","gender":"F","lcm":153.13,"appScm":150.73,"coScm":150.73,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Breaststroke","distance":200,"ageGroup":"12&U","gender":"M","lcm":181.58,"appScm":177.58,"coScm":177.58,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Breaststroke","distance":200,"ageGroup":"12&U","gender":"F","lcm":183.67,"appScm":179.67,"coScm":179.67,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Breaststroke","distance":200,"ageGroup":"13","gender":"M","lcm":178.05,"appScm":174.05,"coScm":174.05,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Breaststroke","distance":200,"ageGroup":"13","gender":"F","lcm":180.16,"appScm":176.16,"coScm":176.16,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Breaststroke","distance":200,"ageGroup":"14","gender":"M","lcm":166.24,"appScm":162.24,"coScm":162.24,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Breaststroke","distance":200,"ageGroup":"14","gender":"F","lcm":174.47,"appScm":170.47,"coScm":170.47,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Breaststroke","distance":200,"ageGroup":"15","gender":"M","lcm":158.09,"appScm":154.09,"coScm":154.09,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Breaststroke","distance":200,"ageGroup":"15","gender":"F","lcm":173.3,"appScm":169.3,"coScm":169.3,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Breaststroke","distance":200,"ageGroup":"16","gender":"M","lcm":156.04,"appScm":152.04,"coScm":152.04,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Breaststroke","distance":200,"ageGroup":"16","gender":"F","lcm":171.05,"appScm":167.05,"coScm":167.05,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":200,"ageGroup":"12&U","gender":"M","lcm":139.6,"appScm":136.4,"coScm":136.4,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":200,"ageGroup":"12&U","gender":"F","lcm":147.55,"appScm":144.35,"coScm":144.35,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":200,"ageGroup":"13","gender":"M","lcm":137.3,"appScm":134.1,"coScm":134.1,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":200,"ageGroup":"13","gender":"F","lcm":144.86,"appScm":141.66,"coScm":141.66,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":200,"ageGroup":"14","gender":"M","lcm":129.38,"appScm":126.18,"coScm":126.18,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":200,"ageGroup":"14","gender":"F","lcm":141.4,"appScm":138.2,"coScm":138.2,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":200,"ageGroup":"15","gender":"M","lcm":123.74,"appScm":120.54,"coScm":120.54,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":200,"ageGroup":"15","gender":"F","lcm":139.56,"appScm":136.36,"coScm":136.36,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":200,"ageGroup":"16","gender":"M","lcm":123.01,"appScm":119.81,"coScm":119.81,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":200,"ageGroup":"16","gender":"F","lcm":138.68,"appScm":135.48,"coScm":135.48,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Individual Medley","distance":200,"ageGroup":"12&U","gender":"M","lcm":161.45,"appScm":158.25,"coScm":158.25,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Individual Medley","distance":200,"ageGroup":"12&U","gender":"F","lcm":169.2,"appScm":166,"coScm":166,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Individual Medley","distance":200,"ageGroup":"13","gender":"M","lcm":155.58,"appScm":152.38,"coScm":152.38,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Individual Medley","distance":200,"ageGroup":"13","gender":"F","lcm":164.64,"appScm":161.44,"coScm":161.44,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Individual Medley","distance":200,"ageGroup":"14","gender":"M","lcm":147.05,"appScm":143.85,"coScm":143.85,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Individual Medley","distance":200,"ageGroup":"14","gender":"F","lcm":158.37,"appScm":155.17,"coScm":155.17,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Individual Medley","distance":200,"ageGroup":"15","gender":"M","lcm":141.98,"appScm":138.78,"coScm":138.78,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Individual Medley","distance":200,"ageGroup":"15","gender":"F","lcm":157.84,"appScm":154.64,"coScm":154.64,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Individual Medley","distance":200,"ageGroup":"16","gender":"M","lcm":138.38,"appScm":135.18,"coScm":135.18,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Individual Medley","distance":200,"ageGroup":"16","gender":"F","lcm":157.33,"appScm":154.13,"coScm":154.13,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":400,"ageGroup":"12&U","gender":"M","lcm":301.06,"appScm":294.66,"coScm":294.66,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":400,"ageGroup":"12&U","gender":"F","lcm":307.89,"appScm":301.49,"coScm":301.49,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":400,"ageGroup":"13","gender":"M","lcm":296.08,"appScm":289.68,"coScm":289.68,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":400,"ageGroup":"13","gender":"F","lcm":302.27,"appScm":295.87,"coScm":295.87,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":400,"ageGroup":"14","gender":"M","lcm":279,"appScm":272.6,"coScm":272.6,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":400,"ageGroup":"14","gender":"F","lcm":295.04,"appScm":288.64,"coScm":288.64,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":400,"ageGroup":"15","gender":"M","lcm":266.85,"appScm":260.45,"coScm":260.45,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":400,"ageGroup":"15","gender":"F","lcm":291.21,"appScm":284.81,"coScm":284.81,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":400,"ageGroup":"16","gender":"M","lcm":265.28,"appScm":258.88,"coScm":258.88,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":400,"ageGroup":"16","gender":"F","lcm":289.37,"appScm":282.97,"coScm":282.97,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Individual Medley","distance":400,"ageGroup":"12&U","gender":"M","lcm":347.44,"appScm":341.04,"coScm":341.04,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Individual Medley","distance":400,"ageGroup":"12&U","gender":"F","lcm":354.89,"appScm":348.49,"coScm":348.49,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Individual Medley","distance":400,"ageGroup":"13","gender":"M","lcm":334.79,"appScm":328.39,"coScm":328.39,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Individual Medley","distance":400,"ageGroup":"13","gender":"F","lcm":345.33,"appScm":338.93,"coScm":338.93,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Individual Medley","distance":400,"ageGroup":"14","gender":"M","lcm":316.45,"appScm":310.05,"coScm":310.05,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Individual Medley","distance":400,"ageGroup":"14","gender":"F","lcm":332.17,"appScm":325.77,"coScm":325.77,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Individual Medley","distance":400,"ageGroup":"15","gender":"M","lcm":305.53,"appScm":299.13,"coScm":299.13,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Individual Medley","distance":400,"ageGroup":"15","gender":"F","lcm":331.07,"appScm":324.67,"coScm":324.67,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Individual Medley","distance":400,"ageGroup":"16","gender":"M","lcm":297.79,"appScm":291.39,"coScm":291.39,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Individual Medley","distance":400,"ageGroup":"16","gender":"F","lcm":329.99,"appScm":323.59,"coScm":323.59,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":800,"ageGroup":"12&U","gender":"M","lcm":618.82,"appScm":606.02,"coScm":606.02,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":800,"ageGroup":"12&U","gender":"F","lcm":636.5,"appScm":623.7,"coScm":623.7,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":800,"ageGroup":"13","gender":"M","lcm":608.59,"appScm":595.79,"coScm":595.79,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":800,"ageGroup":"13","gender":"F","lcm":624.88,"appScm":612.08,"coScm":612.08,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":800,"ageGroup":"14","gender":"M","lcm":573.48,"appScm":560.68,"coScm":560.68,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":800,"ageGroup":"14","gender":"F","lcm":609.95,"appScm":597.15,"coScm":597.15,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":800,"ageGroup":"15","gender":"M","lcm":548.51,"appScm":535.71,"coScm":535.71,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":800,"ageGroup":"15","gender":"F","lcm":602.03,"appScm":589.23,"coScm":589.23,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":800,"ageGroup":"16","gender":"M","lcm":545.29,"appScm":532.49,"coScm":532.49,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":800,"ageGroup":"16","gender":"F","lcm":598.22,"appScm":585.42,"coScm":585.42,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":1500,"ageGroup":"12&U","gender":"M","lcm":1191.69,"appScm":1167.69,"coScm":1167.69,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":1500,"ageGroup":"12&U","gender":"F","lcm":1210.21,"appScm":1186.21,"coScm":1186.21,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":1500,"ageGroup":"13","gender":"M","lcm":1171.99,"appScm":1147.99,"coScm":1147.99,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":1500,"ageGroup":"13","gender":"F","lcm":1188.12,"appScm":1164.12,"coScm":1164.12,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":1500,"ageGroup":"14","gender":"M","lcm":1104.38,"appScm":1080.38,"coScm":1080.38,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":1500,"ageGroup":"14","gender":"F","lcm":1159.73,"appScm":1135.73,"coScm":1135.73,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":1500,"ageGroup":"15","gender":"M","lcm":1056.3,"appScm":1032.3,"coScm":1032.3,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":1500,"ageGroup":"15","gender":"F","lcm":1144.66,"appScm":1120.66,"coScm":1120.66,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":1500,"ageGroup":"16","gender":"M","lcm":1050.09,"appScm":1026.09,"coScm":1026.09,"delta":0},{"standard":"SA National Junior Championships (SANJ)","stroke":"Freestyle","distance":1500,"ageGroup":"16","gender":"F","lcm":1137.42,"appScm":1113.42,"coScm":1113.42,"delta":0},{"standard":"SA National Youth Championships","stroke":"Backstroke","distance":50,"ageGroup":"","gender":"M","lcm":30.28,"appScm":29.68,"coScm":29.68,"delta":0},{"standard":"SA National Youth Championships","stroke":"Backstroke","distance":50,"ageGroup":"","gender":"F","lcm":35.05,"appScm":34.45,"coScm":34.45,"delta":0},{"standard":"SA National Youth Championships","stroke":"Breaststroke","distance":50,"ageGroup":"","gender":"M","lcm":33.37,"appScm":32.37,"coScm":32.37,"delta":0},{"standard":"SA National Youth Championships","stroke":"Breaststroke","distance":50,"ageGroup":"","gender":"F","lcm":38.05,"appScm":37.05,"coScm":37.05,"delta":0},{"standard":"SA National Youth Championships","stroke":"Butterfly","distance":50,"ageGroup":"","gender":"M","lcm":28.64,"appScm":27.94,"coScm":27.94,"delta":0},{"standard":"SA National Youth Championships","stroke":"Butterfly","distance":50,"ageGroup":"","gender":"F","lcm":31.88,"appScm":31.18,"coScm":31.18,"delta":0},{"standard":"SA National Youth Championships","stroke":"Freestyle","distance":50,"ageGroup":"","gender":"M","lcm":26.89,"appScm":26.09,"coScm":26.09,"delta":0},{"standard":"SA National Youth Championships","stroke":"Freestyle","distance":50,"ageGroup":"","gender":"F","lcm":30.81,"appScm":30.01,"coScm":30.01,"delta":0},{"standard":"SA National Youth Championships","stroke":"Backstroke","distance":100,"ageGroup":"","gender":"M","lcm":66.36,"appScm":65.16,"coScm":65.16,"delta":0},{"standard":"SA National Youth Championships","stroke":"Backstroke","distance":100,"ageGroup":"","gender":"F","lcm":74.55,"appScm":73.35,"coScm":73.35,"delta":0},{"standard":"SA National Youth Championships","stroke":"Breaststroke","distance":100,"ageGroup":"","gender":"M","lcm":73.15,"appScm":71.15,"coScm":71.15,"delta":0},{"standard":"SA National Youth Championships","stroke":"Breaststroke","distance":100,"ageGroup":"","gender":"F","lcm":83.68,"appScm":81.68,"coScm":81.68,"delta":0},{"standard":"SA National Youth Championships","stroke":"Butterfly","distance":100,"ageGroup":"","gender":"M","lcm":63.6,"appScm":62.2,"coScm":62.2,"delta":0},{"standard":"SA National Youth Championships","stroke":"Butterfly","distance":100,"ageGroup":"","gender":"F","lcm":71.25,"appScm":69.85,"coScm":69.85,"delta":0},{"standard":"SA National Youth Championships","stroke":"Freestyle","distance":100,"ageGroup":"","gender":"M","lcm":59.67,"appScm":58.07,"coScm":58.07,"delta":0},{"standard":"SA National Youth Championships","stroke":"Freestyle","distance":100,"ageGroup":"","gender":"F","lcm":67.47,"appScm":65.87,"coScm":65.87,"delta":0},{"standard":"SA National Youth Championships","stroke":"Backstroke","distance":200,"ageGroup":"","gender":"M","lcm":143.94,"appScm":141.54,"coScm":141.54,"delta":0},{"standard":"SA National Youth Championships","stroke":"Backstroke","distance":200,"ageGroup":"","gender":"F","lcm":160.69,"appScm":158.29,"coScm":158.29,"delta":0},{"standard":"SA National Youth Championships","stroke":"Breaststroke","distance":200,"ageGroup":"","gender":"M","lcm":161.38,"appScm":157.38,"coScm":157.38,"delta":0},{"standard":"SA National Youth Championships","stroke":"Breaststroke","distance":200,"ageGroup":"","gender":"F","lcm":179.49,"appScm":175.49,"coScm":175.49,"delta":0},{"standard":"SA National Youth Championships","stroke":"Butterfly","distance":200,"ageGroup":"","gender":"M","lcm":141.91,"appScm":139.11,"coScm":139.11,"delta":0},{"standard":"SA National Youth Championships","stroke":"Butterfly","distance":200,"ageGroup":"","gender":"F","lcm":158.95,"appScm":156.15,"coScm":156.15,"delta":0},{"standard":"SA National Youth Championships","stroke":"Freestyle","distance":200,"ageGroup":"","gender":"M","lcm":131.19,"appScm":127.99,"coScm":127.99,"delta":0},{"standard":"SA National Youth Championships","stroke":"Freestyle","distance":200,"ageGroup":"","gender":"F","lcm":146.45,"appScm":143.25,"coScm":143.25,"delta":0},{"standard":"SA National Youth Championships","stroke":"Individual Medley","distance":200,"ageGroup":"","gender":"M","lcm":144.93,"appScm":141.73,"coScm":141.73,"delta":0},{"standard":"SA National Youth Championships","stroke":"Individual Medley","distance":200,"ageGroup":"","gender":"F","lcm":164.03,"appScm":160.83,"coScm":160.83,"delta":0},{"standard":"SA National Youth Championships","stroke":"Freestyle","distance":400,"ageGroup":"","gender":"M","lcm":282.9,"appScm":276.5,"coScm":276.5,"delta":0},{"standard":"SA National Youth Championships","stroke":"Freestyle","distance":400,"ageGroup":"","gender":"F","lcm":305.59,"appScm":299.19,"coScm":299.19,"delta":0},{"standard":"SA National Youth Championships","stroke":"Individual Medley","distance":400,"ageGroup":"","gender":"M","lcm":311.89,"appScm":305.49,"coScm":305.49,"delta":0},{"standard":"SA National Youth Championships","stroke":"Individual Medley","distance":400,"ageGroup":"","gender":"F","lcm":344.05,"appScm":337.65,"coScm":337.65,"delta":0},{"standard":"SA National Youth Championships","stroke":"Freestyle","distance":800,"ageGroup":"","gender":"M","lcm":581.5,"appScm":568.7,"coScm":568.7,"delta":0},{"standard":"SA National Youth Championships","stroke":"Freestyle","distance":800,"ageGroup":"","gender":"F","lcm":631.75,"appScm":618.95,"coScm":618.95,"delta":0},{"standard":"SA National Youth Championships","stroke":"Freestyle","distance":1500,"ageGroup":"","gender":"M","lcm":1119.83,"appScm":1095.83,"coScm":1095.83,"delta":0},{"standard":"SA National Youth Championships","stroke":"Freestyle","distance":1500,"ageGroup":"","gender":"F","lcm":1201.18,"appScm":1177.18,"coScm":1177.18,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Backstroke","distance":50,"ageGroup":"","gender":"M","lcm":29.28,"appScm":28.68,"coScm":28.68,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Backstroke","distance":50,"ageGroup":"","gender":"F","lcm":33.61,"appScm":33.01,"coScm":33.01,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Breaststroke","distance":50,"ageGroup":"","gender":"M","lcm":32.27,"appScm":31.27,"coScm":31.27,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Breaststroke","distance":50,"ageGroup":"","gender":"F","lcm":36.49,"appScm":35.49,"coScm":35.49,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Butterfly","distance":50,"ageGroup":"","gender":"M","lcm":27.69,"appScm":26.99,"coScm":26.99,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Butterfly","distance":50,"ageGroup":"","gender":"F","lcm":30.57,"appScm":29.87,"coScm":29.87,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Freestyle","distance":50,"ageGroup":"","gender":"M","lcm":25.83,"appScm":25.03,"coScm":25.03,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Freestyle","distance":50,"ageGroup":"","gender":"F","lcm":29.36,"appScm":28.56,"coScm":28.56,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Backstroke","distance":100,"ageGroup":"","gender":"M","lcm":64.16,"appScm":62.96,"coScm":62.96,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Backstroke","distance":100,"ageGroup":"","gender":"F","lcm":71.5,"appScm":70.3,"coScm":70.3,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Breaststroke","distance":100,"ageGroup":"","gender":"M","lcm":70.73,"appScm":68.73,"coScm":68.73,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Breaststroke","distance":100,"ageGroup":"","gender":"F","lcm":80.26,"appScm":78.26,"coScm":78.26,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Butterfly","distance":100,"ageGroup":"","gender":"M","lcm":61.49,"appScm":60.09,"coScm":60.09,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Butterfly","distance":100,"ageGroup":"","gender":"F","lcm":68.33,"appScm":66.93,"coScm":66.93,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Freestyle","distance":100,"ageGroup":"","gender":"M","lcm":57.33,"appScm":55.73,"coScm":55.73,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Freestyle","distance":100,"ageGroup":"","gender":"F","lcm":64.3,"appScm":62.7,"coScm":62.7,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Backstroke","distance":200,"ageGroup":"","gender":"M","lcm":139.17,"appScm":136.77,"coScm":136.77,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Backstroke","distance":200,"ageGroup":"","gender":"F","lcm":154.12,"appScm":151.72,"coScm":151.72,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Breaststroke","distance":200,"ageGroup":"","gender":"M","lcm":156.04,"appScm":152.04,"coScm":152.04,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Breaststroke","distance":200,"ageGroup":"","gender":"F","lcm":172.16,"appScm":168.16,"coScm":168.16,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Butterfly","distance":200,"ageGroup":"","gender":"M","lcm":137.21,"appScm":134.41,"coScm":134.41,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Butterfly","distance":200,"ageGroup":"","gender":"F","lcm":152.46,"appScm":149.66,"coScm":149.66,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Freestyle","distance":200,"ageGroup":"","gender":"M","lcm":126.03,"appScm":122.83,"coScm":122.83,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Freestyle","distance":200,"ageGroup":"","gender":"F","lcm":139.56,"appScm":136.36,"coScm":136.36,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Individual Medley","distance":200,"ageGroup":"","gender":"M","lcm":140.13,"appScm":136.93,"coScm":136.93,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Individual Medley","distance":200,"ageGroup":"","gender":"F","lcm":157.33,"appScm":154.13,"coScm":154.13,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Freestyle","distance":400,"ageGroup":"","gender":"M","lcm":271.8,"appScm":265.4,"coScm":265.4,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Freestyle","distance":400,"ageGroup":"","gender":"F","lcm":291.21,"appScm":284.81,"coScm":284.81,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Individual Medley","distance":400,"ageGroup":"","gender":"M","lcm":301.56,"appScm":295.16,"coScm":295.16,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Individual Medley","distance":400,"ageGroup":"","gender":"F","lcm":329.99,"appScm":323.59,"coScm":323.59,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Freestyle","distance":800,"ageGroup":"","gender":"M","lcm":558.67,"appScm":545.87,"coScm":545.87,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Freestyle","distance":800,"ageGroup":"","gender":"F","lcm":602.03,"appScm":589.23,"coScm":589.23,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Freestyle","distance":1500,"ageGroup":"","gender":"M","lcm":1075.87,"appScm":1051.87,"coScm":1051.87,"delta":0},{"standard":"2026 SA Short Course Championships","stroke":"Freestyle","distance":1500,"ageGroup":"","gender":"F","lcm":1144.66,"appScm":1120.66,"coScm":1120.66,"delta":0},{"standard":"Grand Prix","stroke":"Backstroke","distance":50,"ageGroup":"","gender":"M","lcm":29.87,"appScm":29.27,"coScm":29.27,"delta":0},{"standard":"Grand Prix","stroke":"Backstroke","distance":50,"ageGroup":"","gender":"F","lcm":33.84,"appScm":33.24,"coScm":33.24,"delta":0},{"standard":"Grand Prix","stroke":"Breaststroke","distance":50,"ageGroup":"","gender":"M","lcm":32.91,"appScm":31.91,"coScm":31.91,"delta":0},{"standard":"Grand Prix","stroke":"Breaststroke","distance":50,"ageGroup":"","gender":"F","lcm":36.73,"appScm":35.73,"coScm":35.73,"delta":0},{"standard":"Grand Prix","stroke":"Butterfly","distance":50,"ageGroup":"","gender":"M","lcm":28.24,"appScm":27.54,"coScm":27.54,"delta":0},{"standard":"Grand Prix","stroke":"Butterfly","distance":50,"ageGroup":"","gender":"F","lcm":30.77,"appScm":30.07,"coScm":30.07,"delta":0},{"standard":"Grand Prix","stroke":"Freestyle","distance":50,"ageGroup":"","gender":"M","lcm":26.34,"appScm":25.54,"coScm":25.54,"delta":0},{"standard":"Grand Prix","stroke":"Freestyle","distance":50,"ageGroup":"","gender":"F","lcm":29.74,"appScm":28.94,"coScm":28.94,"delta":0},{"standard":"Grand Prix","stroke":"Backstroke","distance":100,"ageGroup":"","gender":"M","lcm":65.01,"appScm":63.81,"coScm":63.81,"delta":0},{"standard":"Grand Prix","stroke":"Backstroke","distance":100,"ageGroup":"","gender":"F","lcm":71.97,"appScm":70.77,"coScm":70.77,"delta":0},{"standard":"Grand Prix","stroke":"Breaststroke","distance":100,"ageGroup":"","gender":"M","lcm":72.14,"appScm":70.14,"coScm":70.14,"delta":0},{"standard":"Grand Prix","stroke":"Breaststroke","distance":100,"ageGroup":"","gender":"F","lcm":80.79,"appScm":78.79,"coScm":78.79,"delta":0},{"standard":"Grand Prix","stroke":"Butterfly","distance":100,"ageGroup":"","gender":"M","lcm":62.72,"appScm":61.32,"coScm":61.32,"delta":0},{"standard":"Grand Prix","stroke":"Butterfly","distance":100,"ageGroup":"","gender":"F","lcm":68.79,"appScm":67.39,"coScm":67.39,"delta":0},{"standard":"Grand Prix","stroke":"Freestyle","distance":100,"ageGroup":"","gender":"M","lcm":58.46,"appScm":56.86,"coScm":56.86,"delta":0},{"standard":"Grand Prix","stroke":"Freestyle","distance":100,"ageGroup":"","gender":"F","lcm":65.15,"appScm":63.55,"coScm":63.55,"delta":0},{"standard":"Grand Prix","stroke":"Backstroke","distance":200,"ageGroup":"","gender":"M","lcm":141.01,"appScm":138.61,"coScm":138.61,"delta":0},{"standard":"Grand Prix","stroke":"Backstroke","distance":200,"ageGroup":"","gender":"F","lcm":155.14,"appScm":152.74,"coScm":152.74,"delta":0},{"standard":"Grand Prix","stroke":"Breaststroke","distance":200,"ageGroup":"","gender":"M","lcm":159.16,"appScm":155.16,"coScm":155.16,"delta":0},{"standard":"Grand Prix","stroke":"Breaststroke","distance":200,"ageGroup":"","gender":"F","lcm":173.3,"appScm":169.3,"coScm":169.3,"delta":0},{"standard":"Grand Prix","stroke":"Butterfly","distance":200,"ageGroup":"","gender":"M","lcm":139.95,"appScm":137.15,"coScm":137.15,"delta":0},{"standard":"Grand Prix","stroke":"Butterfly","distance":200,"ageGroup":"","gender":"F","lcm":153.47,"appScm":150.67,"coScm":150.67,"delta":0},{"standard":"Grand Prix","stroke":"Freestyle","distance":200,"ageGroup":"","gender":"M","lcm":128.51,"appScm":125.31,"coScm":125.31,"delta":0},{"standard":"Grand Prix","stroke":"Freestyle","distance":200,"ageGroup":"","gender":"F","lcm":141.4,"appScm":138.2,"coScm":138.2,"delta":0},{"standard":"Grand Prix","stroke":"Individual Medley","distance":200,"ageGroup":"","gender":"M","lcm":142.93,"appScm":139.73,"coScm":139.73,"delta":0},{"standard":"Grand Prix","stroke":"Individual Medley","distance":200,"ageGroup":"","gender":"F","lcm":158.37,"appScm":155.17,"coScm":155.17,"delta":0},{"standard":"Grand Prix","stroke":"Freestyle","distance":400,"ageGroup":"","gender":"M","lcm":277.27,"appScm":270.87,"coScm":270.87,"delta":0},{"standard":"Grand Prix","stroke":"Freestyle","distance":400,"ageGroup":"","gender":"F","lcm":295.04,"appScm":288.64,"coScm":288.64,"delta":0},{"standard":"Grand Prix","stroke":"Individual Medley","distance":400,"ageGroup":"","gender":"M","lcm":307.59,"appScm":301.19,"coScm":301.19,"delta":0},{"standard":"Grand Prix","stroke":"Individual Medley","distance":400,"ageGroup":"","gender":"F","lcm":332.17,"appScm":325.77,"coScm":325.77,"delta":0},{"standard":"Grand Prix","stroke":"Freestyle","distance":800,"ageGroup":"","gender":"M","lcm":569.63,"appScm":556.83,"coScm":556.83,"delta":0},{"standard":"Grand Prix","stroke":"Freestyle","distance":800,"ageGroup":"","gender":"F","lcm":609.95,"appScm":597.15,"coScm":597.15,"delta":0},{"standard":"Grand Prix","stroke":"Freestyle","distance":1500,"ageGroup":"","gender":"M","lcm":1096.97,"appScm":1072.97,"coScm":1072.97,"delta":0},{"standard":"Grand Prix","stroke":"Freestyle","distance":1500,"ageGroup":"","gender":"F","lcm":1159.73,"appScm":1135.73,"coScm":1135.73,"delta":0},{"standard":"Level 3","stroke":"Backstroke","distance":100,"ageGroup":"11&U","gender":"M","lcm":93.42,"appScm":92.22,"coScm":92.22,"delta":0},{"standard":"Level 3","stroke":"Backstroke","distance":100,"ageGroup":"11&U","gender":"F","lcm":95.83,"appScm":94.63,"coScm":94.63,"delta":0},{"standard":"Level 3","stroke":"Backstroke","distance":100,"ageGroup":"12","gender":"M","lcm":84.71,"appScm":83.51,"coScm":83.51,"delta":0},{"standard":"Level 3","stroke":"Backstroke","distance":100,"ageGroup":"12","gender":"F","lcm":85.34,"appScm":84.14,"coScm":84.14,"delta":0},{"standard":"Level 3","stroke":"Backstroke","distance":100,"ageGroup":"13","gender":"M","lcm":77.08,"appScm":75.88,"coScm":75.88,"delta":0},{"standard":"Level 3","stroke":"Backstroke","distance":100,"ageGroup":"13","gender":"F","lcm":81.85,"appScm":80.65,"coScm":80.65,"delta":0},{"standard":"Level 3","stroke":"Backstroke","distance":100,"ageGroup":"14","gender":"M","lcm":75.43,"appScm":74.23,"coScm":74.23,"delta":0},{"standard":"Level 3","stroke":"Backstroke","distance":100,"ageGroup":"14","gender":"F","lcm":80.3,"appScm":79.1,"coScm":79.1,"delta":0},{"standard":"Level 3","stroke":"Backstroke","distance":100,"ageGroup":"15","gender":"M","lcm":69.17,"appScm":67.97,"coScm":67.97,"delta":0},{"standard":"Level 3","stroke":"Backstroke","distance":100,"ageGroup":"15","gender":"F","lcm":78.87,"appScm":77.67,"coScm":77.67,"delta":0},{"standard":"Level 3","stroke":"Backstroke","distance":100,"ageGroup":"16","gender":"M","lcm":68.79,"appScm":67.59,"coScm":67.59,"delta":0},{"standard":"Level 3","stroke":"Backstroke","distance":100,"ageGroup":"16","gender":"F","lcm":77.53,"appScm":76.33,"coScm":76.33,"delta":0},{"standard":"Level 3","stroke":"Breaststroke","distance":100,"ageGroup":"11&U","gender":"M","lcm":102.68,"appScm":100.68,"coScm":100.68,"delta":0},{"standard":"Level 3","stroke":"Breaststroke","distance":100,"ageGroup":"11&U","gender":"F","lcm":106.22,"appScm":104.22,"coScm":104.22,"delta":0},{"standard":"Level 3","stroke":"Breaststroke","distance":100,"ageGroup":"12","gender":"M","lcm":95.69,"appScm":93.69,"coScm":93.69,"delta":0},{"standard":"Level 3","stroke":"Breaststroke","distance":100,"ageGroup":"12","gender":"F","lcm":95.79,"appScm":93.79,"coScm":93.79,"delta":0},{"standard":"Level 3","stroke":"Breaststroke","distance":100,"ageGroup":"13","gender":"M","lcm":92.17,"appScm":90.17,"coScm":90.17,"delta":0},{"standard":"Level 3","stroke":"Breaststroke","distance":100,"ageGroup":"13","gender":"F","lcm":91.88,"appScm":89.88,"coScm":89.88,"delta":0},{"standard":"Level 3","stroke":"Breaststroke","distance":100,"ageGroup":"14","gender":"M","lcm":83.15,"appScm":81.15,"coScm":81.15,"delta":0},{"standard":"Level 3","stroke":"Breaststroke","distance":100,"ageGroup":"14","gender":"F","lcm":90.14,"appScm":88.14,"coScm":88.14,"delta":0},{"standard":"Level 3","stroke":"Breaststroke","distance":100,"ageGroup":"15","gender":"M","lcm":76.25,"appScm":74.25,"coScm":74.25,"delta":0},{"standard":"Level 3","stroke":"Breaststroke","distance":100,"ageGroup":"15","gender":"F","lcm":88.53,"appScm":86.53,"coScm":86.53,"delta":0},{"standard":"Level 3","stroke":"Breaststroke","distance":100,"ageGroup":"16","gender":"M","lcm":75.95,"appScm":73.95,"coScm":73.95,"delta":0},{"standard":"Level 3","stroke":"Breaststroke","distance":100,"ageGroup":"16","gender":"F","lcm":87.03,"appScm":85.03,"coScm":85.03,"delta":0},{"standard":"Level 3","stroke":"Butterfly","distance":100,"ageGroup":"11&U","gender":"M","lcm":92.27,"appScm":90.87,"coScm":90.87,"delta":0},{"standard":"Level 3","stroke":"Butterfly","distance":100,"ageGroup":"11&U","gender":"F","lcm":96.49,"appScm":95.09,"coScm":95.09,"delta":0},{"standard":"Level 3","stroke":"Butterfly","distance":100,"ageGroup":"12","gender":"M","lcm":86.78,"appScm":85.38,"coScm":85.38,"delta":0},{"standard":"Level 3","stroke":"Butterfly","distance":100,"ageGroup":"12","gender":"F","lcm":81.56,"appScm":80.16,"coScm":80.16,"delta":0},{"standard":"Level 3","stroke":"Butterfly","distance":100,"ageGroup":"13","gender":"M","lcm":78.5,"appScm":77.1,"coScm":77.1,"delta":0},{"standard":"Level 3","stroke":"Butterfly","distance":100,"ageGroup":"13","gender":"F","lcm":78.22,"appScm":76.82,"coScm":76.82,"delta":0},{"standard":"Level 3","stroke":"Butterfly","distance":100,"ageGroup":"14","gender":"M","lcm":72.29,"appScm":70.89,"coScm":70.89,"delta":0},{"standard":"Level 3","stroke":"Butterfly","distance":100,"ageGroup":"14","gender":"F","lcm":76.75,"appScm":75.35,"coScm":75.35,"delta":0},{"standard":"Level 3","stroke":"Butterfly","distance":100,"ageGroup":"15","gender":"M","lcm":66.29,"appScm":64.89,"coScm":64.89,"delta":0},{"standard":"Level 3","stroke":"Butterfly","distance":100,"ageGroup":"15","gender":"F","lcm":75.38,"appScm":73.98,"coScm":73.98,"delta":0},{"standard":"Level 3","stroke":"Butterfly","distance":100,"ageGroup":"16","gender":"M","lcm":66.03,"appScm":64.63,"coScm":64.63,"delta":0},{"standard":"Level 3","stroke":"Butterfly","distance":100,"ageGroup":"16","gender":"F","lcm":74.1,"appScm":72.7,"coScm":72.7,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":100,"ageGroup":"11&U","gender":"M","lcm":76.06,"appScm":74.46,"coScm":74.46,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":100,"ageGroup":"11&U","gender":"F","lcm":76.4,"appScm":74.8,"coScm":74.8,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":100,"ageGroup":"12","gender":"M","lcm":72.15,"appScm":70.55,"coScm":70.55,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":100,"ageGroup":"12","gender":"F","lcm":74.82,"appScm":73.22,"coScm":73.22,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":100,"ageGroup":"13","gender":"M","lcm":68.55,"appScm":66.95,"coScm":66.95,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":100,"ageGroup":"13","gender":"F","lcm":70.18,"appScm":68.58,"coScm":68.58,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":100,"ageGroup":"14","gender":"M","lcm":63.5,"appScm":61.9,"coScm":61.9,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":100,"ageGroup":"14","gender":"F","lcm":69.04,"appScm":67.44,"coScm":67.44,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":100,"ageGroup":"15","gender":"M","lcm":59.67,"appScm":58.07,"coScm":58.07,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":100,"ageGroup":"15","gender":"F","lcm":67.98,"appScm":66.38,"coScm":66.38,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":100,"ageGroup":"16","gender":"M","lcm":59.26,"appScm":57.66,"coScm":57.66,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":100,"ageGroup":"16","gender":"F","lcm":66.98,"appScm":65.38,"coScm":65.38,"delta":0},{"standard":"Level 3","stroke":"Backstroke","distance":200,"ageGroup":"11&U","gender":"M","lcm":194.68,"appScm":192.28,"coScm":192.28,"delta":0},{"standard":"Level 3","stroke":"Backstroke","distance":200,"ageGroup":"11&U","gender":"F","lcm":196.26,"appScm":193.86,"coScm":193.86,"delta":0},{"standard":"Level 3","stroke":"Backstroke","distance":200,"ageGroup":"12","gender":"M","lcm":182.67,"appScm":180.27,"coScm":180.27,"delta":0},{"standard":"Level 3","stroke":"Backstroke","distance":200,"ageGroup":"12","gender":"F","lcm":183.94,"appScm":181.54,"coScm":181.54,"delta":0},{"standard":"Level 3","stroke":"Backstroke","distance":200,"ageGroup":"13","gender":"M","lcm":167.18,"appScm":164.78,"coScm":164.78,"delta":0},{"standard":"Level 3","stroke":"Backstroke","distance":200,"ageGroup":"13","gender":"F","lcm":176.43,"appScm":174.03,"coScm":174.03,"delta":0},{"standard":"Level 3","stroke":"Backstroke","distance":200,"ageGroup":"14","gender":"M","lcm":163.62,"appScm":161.22,"coScm":161.22,"delta":0},{"standard":"Level 3","stroke":"Backstroke","distance":200,"ageGroup":"14","gender":"F","lcm":173.1,"appScm":170.7,"coScm":170.7,"delta":0},{"standard":"Level 3","stroke":"Backstroke","distance":200,"ageGroup":"15","gender":"M","lcm":150.04,"appScm":147.64,"coScm":147.64,"delta":0},{"standard":"Level 3","stroke":"Backstroke","distance":200,"ageGroup":"15","gender":"F","lcm":170,"appScm":167.6,"coScm":167.6,"delta":0},{"standard":"Level 3","stroke":"Backstroke","distance":200,"ageGroup":"16","gender":"M","lcm":149.44,"appScm":147.04,"coScm":147.04,"delta":0},{"standard":"Level 3","stroke":"Backstroke","distance":200,"ageGroup":"16","gender":"F","lcm":167.12,"appScm":164.72,"coScm":164.72,"delta":0},{"standard":"Level 3","stroke":"Breaststroke","distance":200,"ageGroup":"11&U","gender":"M","lcm":220.53,"appScm":216.53,"coScm":216.53,"delta":0},{"standard":"Level 3","stroke":"Breaststroke","distance":200,"ageGroup":"11&U","gender":"F","lcm":222.24,"appScm":218.24,"coScm":218.24,"delta":0},{"standard":"Level 3","stroke":"Breaststroke","distance":200,"ageGroup":"12","gender":"M","lcm":207.54,"appScm":203.54,"coScm":203.54,"delta":0},{"standard":"Level 3","stroke":"Breaststroke","distance":200,"ageGroup":"12","gender":"F","lcm":205.47,"appScm":201.47,"coScm":201.47,"delta":0},{"standard":"Level 3","stroke":"Breaststroke","distance":200,"ageGroup":"13","gender":"M","lcm":204.5,"appScm":200.5,"coScm":200.5,"delta":0},{"standard":"Level 3","stroke":"Breaststroke","distance":200,"ageGroup":"13","gender":"F","lcm":197.07,"appScm":193.07,"coScm":193.07,"delta":0},{"standard":"Level 3","stroke":"Breaststroke","distance":200,"ageGroup":"14","gender":"M","lcm":183.45,"appScm":179.45,"coScm":179.45,"delta":0},{"standard":"Level 3","stroke":"Breaststroke","distance":200,"ageGroup":"14","gender":"F","lcm":193.35,"appScm":189.35,"coScm":189.35,"delta":0},{"standard":"Level 3","stroke":"Breaststroke","distance":200,"ageGroup":"15","gender":"M","lcm":168.22,"appScm":164.22,"coScm":164.22,"delta":0},{"standard":"Level 3","stroke":"Breaststroke","distance":200,"ageGroup":"15","gender":"F","lcm":189.9,"appScm":185.9,"coScm":185.9,"delta":0},{"standard":"Level 3","stroke":"Breaststroke","distance":200,"ageGroup":"16","gender":"M","lcm":167.55,"appScm":163.55,"coScm":163.55,"delta":0},{"standard":"Level 3","stroke":"Breaststroke","distance":200,"ageGroup":"16","gender":"F","lcm":186.68,"appScm":182.68,"coScm":182.68,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":200,"ageGroup":"11&U","gender":"M","lcm":168.96,"appScm":165.76,"coScm":165.76,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":200,"ageGroup":"11&U","gender":"F","lcm":171.39,"appScm":168.19,"coScm":168.19,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":200,"ageGroup":"12","gender":"M","lcm":165.29,"appScm":162.09,"coScm":162.09,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":200,"ageGroup":"12","gender":"F","lcm":162.4,"appScm":159.2,"coScm":159.2,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":200,"ageGroup":"13","gender":"M","lcm":150.71,"appScm":147.51,"coScm":147.51,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":200,"ageGroup":"13","gender":"F","lcm":152.31,"appScm":149.11,"coScm":149.11,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":200,"ageGroup":"14","gender":"M","lcm":139.6,"appScm":136.4,"coScm":136.4,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":200,"ageGroup":"14","gender":"F","lcm":149.86,"appScm":146.66,"coScm":146.66,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":200,"ageGroup":"15","gender":"M","lcm":131.19,"appScm":127.99,"coScm":127.99,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":200,"ageGroup":"15","gender":"F","lcm":147.55,"appScm":144.35,"coScm":144.35,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":200,"ageGroup":"16","gender":"M","lcm":130.27,"appScm":127.07,"coScm":127.07,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":200,"ageGroup":"16","gender":"F","lcm":145.38,"appScm":142.18,"coScm":142.18,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":400,"ageGroup":"11&U","gender":"M","lcm":372.31,"appScm":365.91,"coScm":365.91,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":400,"ageGroup":"11&U","gender":"F","lcm":386.01,"appScm":379.61,"coScm":379.61,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":400,"ageGroup":"12","gender":"M","lcm":340.91,"appScm":334.51,"coScm":334.51,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":400,"ageGroup":"12","gender":"F","lcm":338.87,"appScm":332.47,"coScm":332.47,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":400,"ageGroup":"13","gender":"M","lcm":325,"appScm":318.6,"coScm":318.6,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":400,"ageGroup":"13","gender":"F","lcm":317.83,"appScm":311.43,"coScm":311.43,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":400,"ageGroup":"14","gender":"M","lcm":301.06,"appScm":294.66,"coScm":294.66,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":400,"ageGroup":"14","gender":"F","lcm":312.7,"appScm":306.3,"coScm":306.3,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":400,"ageGroup":"15","gender":"M","lcm":282.9,"appScm":276.5,"coScm":276.5,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":400,"ageGroup":"15","gender":"F","lcm":307.89,"appScm":301.49,"coScm":301.49,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":400,"ageGroup":"16","gender":"M","lcm":280.92,"appScm":274.52,"coScm":274.52,"delta":0},{"standard":"Level 3","stroke":"Freestyle","distance":400,"ageGroup":"16","gender":"F","lcm":303.36,"appScm":296.96,"coScm":296.96,"delta":0},{"standard":"Level 3","stroke":"Individual Medley","distance":400,"ageGroup":"11&U","gender":"M","lcm":201.65,"appScm":195.25,"coScm":195.25,"delta":0},{"standard":"Level 3","stroke":"Individual Medley","distance":400,"ageGroup":"11&U","gender":"F","lcm":206.89,"appScm":200.49,"coScm":200.49,"delta":0},{"standard":"Level 3","stroke":"Individual Medley","distance":400,"ageGroup":"12","gender":"M","lcm":182.19,"appScm":175.79,"coScm":175.79,"delta":0},{"standard":"Level 3","stroke":"Individual Medley","distance":400,"ageGroup":"12","gender":"F","lcm":187.77,"appScm":181.37,"coScm":181.37,"delta":0},{"standard":"Level 3","stroke":"Individual Medley","distance":400,"ageGroup":"13","gender":"M","lcm":168.33,"appScm":161.93,"coScm":161.93,"delta":0},{"standard":"Level 3","stroke":"Individual Medley","distance":400,"ageGroup":"13","gender":"F","lcm":180.09,"appScm":173.69,"coScm":173.69,"delta":0},{"standard":"Level 3","stroke":"Individual Medley","distance":400,"ageGroup":"14","gender":"M","lcm":164.75,"appScm":158.35,"coScm":158.35,"delta":0},{"standard":"Level 3","stroke":"Individual Medley","distance":400,"ageGroup":"14","gender":"F","lcm":176.69,"appScm":170.29,"coScm":170.29,"delta":0},{"standard":"Level 3","stroke":"Individual Medley","distance":400,"ageGroup":"15","gender":"M","lcm":151.07,"appScm":144.67,"coScm":144.67,"delta":0},{"standard":"Level 3","stroke":"Individual Medley","distance":400,"ageGroup":"15","gender":"F","lcm":173.54,"appScm":167.14,"coScm":167.14,"delta":0},{"standard":"Level 3","stroke":"Individual Medley","distance":400,"ageGroup":"16","gender":"M","lcm":150.47,"appScm":144.07,"coScm":144.07,"delta":0},{"standard":"Level 3","stroke":"Individual Medley","distance":400,"ageGroup":"16","gender":"F","lcm":170.6,"appScm":164.2,"coScm":164.2,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":50,"ageGroup":"10&U","gender":"M","lcm":48.57,"appScm":47.97,"coScm":47.97,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":50,"ageGroup":"10&U","gender":"F","lcm":49.07,"appScm":48.47,"coScm":48.47,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":50,"ageGroup":"11","gender":"M","lcm":47.23,"appScm":46.63,"coScm":46.63,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":50,"ageGroup":"11","gender":"F","lcm":46.16,"appScm":45.56,"coScm":45.56,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":50,"ageGroup":"12","gender":"M","lcm":43.29,"appScm":42.69,"coScm":42.69,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":50,"ageGroup":"12","gender":"F","lcm":43.1,"appScm":42.5,"coScm":42.5,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":50,"ageGroup":"13","gender":"M","lcm":41.11,"appScm":40.51,"coScm":40.51,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":50,"ageGroup":"13","gender":"F","lcm":41.56,"appScm":40.96,"coScm":40.96,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":50,"ageGroup":"14","gender":"M","lcm":38.22,"appScm":37.62,"coScm":37.62,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":50,"ageGroup":"14","gender":"F","lcm":41.11,"appScm":40.51,"coScm":40.51,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":50,"ageGroup":"15","gender":"M","lcm":36.21,"appScm":35.61,"coScm":35.61,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":50,"ageGroup":"15","gender":"F","lcm":41.01,"appScm":40.41,"coScm":40.41,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":50,"ageGroup":"16","gender":"M","lcm":35.58,"appScm":34.98,"coScm":34.98,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":50,"ageGroup":"16","gender":"F","lcm":40.91,"appScm":40.31,"coScm":40.31,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":50,"ageGroup":"10&U","gender":"M","lcm":55.36,"appScm":54.36,"coScm":54.36,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":50,"ageGroup":"10&U","gender":"F","lcm":54.88,"appScm":53.88,"coScm":53.88,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":50,"ageGroup":"11","gender":"M","lcm":54,"appScm":53,"coScm":53,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":50,"ageGroup":"11","gender":"F","lcm":51.65,"appScm":50.65,"coScm":50.65,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":50,"ageGroup":"12","gender":"M","lcm":49.51,"appScm":48.51,"coScm":48.51,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":50,"ageGroup":"12","gender":"F","lcm":48.09,"appScm":47.09,"coScm":47.09,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":50,"ageGroup":"13","gender":"M","lcm":45.79,"appScm":44.79,"coScm":44.79,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":50,"ageGroup":"13","gender":"F","lcm":46.79,"appScm":45.79,"coScm":45.79,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":50,"ageGroup":"14","gender":"M","lcm":44.15,"appScm":43.15,"coScm":43.15,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":50,"ageGroup":"14","gender":"F","lcm":46.48,"appScm":45.48,"coScm":45.48,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":50,"ageGroup":"15","gender":"M","lcm":40.04,"appScm":39.04,"coScm":39.04,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":50,"ageGroup":"15","gender":"F","lcm":46.35,"appScm":45.35,"coScm":45.35,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":50,"ageGroup":"16","gender":"M","lcm":39.95,"appScm":38.95,"coScm":38.95,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":50,"ageGroup":"16","gender":"F","lcm":46.23,"appScm":45.23,"coScm":45.23,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":50,"ageGroup":"10&U","gender":"M","lcm":53.01,"appScm":52.31,"coScm":52.31,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":50,"ageGroup":"10&U","gender":"F","lcm":55,"appScm":54.3,"coScm":54.3,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":50,"ageGroup":"11","gender":"M","lcm":50,"appScm":49.3,"coScm":49.3,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":50,"ageGroup":"11","gender":"F","lcm":50.09,"appScm":49.39,"coScm":49.39,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":50,"ageGroup":"12","gender":"M","lcm":45.28,"appScm":44.58,"coScm":44.58,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":50,"ageGroup":"12","gender":"F","lcm":44.01,"appScm":43.31,"coScm":43.31,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":50,"ageGroup":"13","gender":"M","lcm":39.52,"appScm":38.82,"coScm":38.82,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":50,"ageGroup":"13","gender":"F","lcm":40.11,"appScm":39.41,"coScm":39.41,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":50,"ageGroup":"14","gender":"M","lcm":36.19,"appScm":35.49,"coScm":35.49,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":50,"ageGroup":"14","gender":"F","lcm":39.82,"appScm":39.12,"coScm":39.12,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":50,"ageGroup":"15","gender":"M","lcm":33.45,"appScm":32.75,"coScm":32.75,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":50,"ageGroup":"15","gender":"F","lcm":39.31,"appScm":38.61,"coScm":38.61,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":50,"ageGroup":"16","gender":"M","lcm":33.16,"appScm":32.46,"coScm":32.46,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":50,"ageGroup":"16","gender":"F","lcm":39.1,"appScm":38.4,"coScm":38.4,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":50,"ageGroup":"10&U","gender":"M","lcm":38.93,"appScm":38.13,"coScm":38.13,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":50,"ageGroup":"10&U","gender":"F","lcm":39.72,"appScm":38.92,"coScm":38.92,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":50,"ageGroup":"11","gender":"M","lcm":37.05,"appScm":36.25,"coScm":36.25,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":50,"ageGroup":"11","gender":"F","lcm":38.2,"appScm":37.4,"coScm":37.4,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":50,"ageGroup":"12","gender":"M","lcm":35.12,"appScm":34.32,"coScm":34.32,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":50,"ageGroup":"12","gender":"F","lcm":35.63,"appScm":34.83,"coScm":34.83,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":50,"ageGroup":"13","gender":"M","lcm":32.35,"appScm":31.55,"coScm":31.55,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":50,"ageGroup":"13","gender":"F","lcm":33.99,"appScm":33.19,"coScm":33.19,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":50,"ageGroup":"14","gender":"M","lcm":30.26,"appScm":29.46,"coScm":29.46,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":50,"ageGroup":"14","gender":"F","lcm":33.76,"appScm":32.96,"coScm":32.96,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":50,"ageGroup":"15","gender":"M","lcm":28.92,"appScm":28.12,"coScm":28.12,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":50,"ageGroup":"15","gender":"F","lcm":33.63,"appScm":32.83,"coScm":32.83,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":50,"ageGroup":"16","gender":"M","lcm":28.26,"appScm":27.46,"coScm":27.46,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":50,"ageGroup":"16","gender":"F","lcm":33.5,"appScm":32.7,"coScm":32.7,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":100,"ageGroup":"10&U","gender":"M","lcm":108.69,"appScm":107.49,"coScm":107.49,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":100,"ageGroup":"10&U","gender":"F","lcm":109,"appScm":107.8,"coScm":107.8,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":100,"ageGroup":"11","gender":"M","lcm":107.05,"appScm":105.85,"coScm":105.85,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":100,"ageGroup":"11","gender":"F","lcm":100.81,"appScm":99.61,"coScm":99.61,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":100,"ageGroup":"12","gender":"M","lcm":95.45,"appScm":94.25,"coScm":94.25,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":100,"ageGroup":"12","gender":"F","lcm":93.79,"appScm":92.59,"coScm":92.59,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":100,"ageGroup":"13","gender":"M","lcm":90.72,"appScm":89.52,"coScm":89.52,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":100,"ageGroup":"13","gender":"F","lcm":89.86,"appScm":88.66,"coScm":88.66,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":100,"ageGroup":"14","gender":"M","lcm":87.37,"appScm":86.17,"coScm":86.17,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":100,"ageGroup":"14","gender":"F","lcm":88.94,"appScm":87.74,"coScm":87.74,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":100,"ageGroup":"15","gender":"M","lcm":83.62,"appScm":82.42,"coScm":82.42,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":100,"ageGroup":"15","gender":"F","lcm":88.72,"appScm":87.52,"coScm":87.52,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":100,"ageGroup":"16","gender":"M","lcm":82.58,"appScm":81.38,"coScm":81.38,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":100,"ageGroup":"16","gender":"F","lcm":88.5,"appScm":87.3,"coScm":87.3,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":100,"ageGroup":"10&U","gender":"M","lcm":124.72,"appScm":122.72,"coScm":122.72,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":100,"ageGroup":"10&U","gender":"F","lcm":122.92,"appScm":120.92,"coScm":120.92,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":100,"ageGroup":"11","gender":"M","lcm":121.74,"appScm":119.74,"coScm":119.74,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":100,"ageGroup":"11","gender":"F","lcm":114,"appScm":112,"coScm":112,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":100,"ageGroup":"12","gender":"M","lcm":110.34,"appScm":108.34,"coScm":108.34,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":100,"ageGroup":"12","gender":"F","lcm":106.23,"appScm":104.23,"coScm":104.23,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":100,"ageGroup":"13","gender":"M","lcm":102.28,"appScm":100.28,"coScm":100.28,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":100,"ageGroup":"13","gender":"F","lcm":104.22,"appScm":102.22,"coScm":102.22,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":100,"ageGroup":"14","gender":"M","lcm":99.82,"appScm":97.82,"coScm":97.82,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":100,"ageGroup":"14","gender":"F","lcm":103.34,"appScm":101.34,"coScm":101.34,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":100,"ageGroup":"15","gender":"M","lcm":91.25,"appScm":89.25,"coScm":89.25,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":100,"ageGroup":"15","gender":"F","lcm":102.91,"appScm":100.91,"coScm":100.91,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":100,"ageGroup":"16","gender":"M","lcm":91.03,"appScm":89.03,"coScm":89.03,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":100,"ageGroup":"16","gender":"F","lcm":102.63,"appScm":100.63,"coScm":100.63,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":100,"ageGroup":"10&U","gender":"M","lcm":135.94,"appScm":134.54,"coScm":134.54,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":100,"ageGroup":"10&U","gender":"F","lcm":135.5,"appScm":134.1,"coScm":134.1,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":100,"ageGroup":"11","gender":"M","lcm":118,"appScm":116.6,"coScm":116.6,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":100,"ageGroup":"11","gender":"F","lcm":121.25,"appScm":119.85,"coScm":119.85,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":100,"ageGroup":"12","gender":"M","lcm":111.25,"appScm":109.85,"coScm":109.85,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":100,"ageGroup":"12","gender":"F","lcm":115.16,"appScm":113.76,"coScm":113.76,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":100,"ageGroup":"13","gender":"M","lcm":102.28,"appScm":100.88,"coScm":100.88,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":100,"ageGroup":"13","gender":"F","lcm":98.84,"appScm":97.44,"coScm":97.44,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":100,"ageGroup":"14","gender":"M","lcm":93.7,"appScm":92.3,"coScm":92.3,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":100,"ageGroup":"14","gender":"F","lcm":98.09,"appScm":96.69,"coScm":96.69,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":100,"ageGroup":"15","gender":"M","lcm":81.91,"appScm":80.51,"coScm":80.51,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":100,"ageGroup":"15","gender":"F","lcm":97.73,"appScm":96.33,"coScm":96.33,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":100,"ageGroup":"16","gender":"M","lcm":80.48,"appScm":79.08,"coScm":79.08,"delta":0},{"standard":"Level 2","stroke":"Butterfly","distance":100,"ageGroup":"16","gender":"F","lcm":97.37,"appScm":95.97,"coScm":95.97,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":100,"ageGroup":"10&U","gender":"M","lcm":91.13,"appScm":89.53,"coScm":89.53,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":100,"ageGroup":"10&U","gender":"F","lcm":92.45,"appScm":90.85,"coScm":90.85,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":100,"ageGroup":"11","gender":"M","lcm":86.57,"appScm":84.97,"coScm":84.97,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":100,"ageGroup":"11","gender":"F","lcm":86.18,"appScm":84.58,"coScm":84.58,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":100,"ageGroup":"12","gender":"M","lcm":78.95,"appScm":77.35,"coScm":77.35,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":100,"ageGroup":"12","gender":"F","lcm":81.23,"appScm":79.63,"coScm":79.63,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":100,"ageGroup":"13","gender":"M","lcm":72.51,"appScm":70.91,"coScm":70.91,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":100,"ageGroup":"13","gender":"F","lcm":77.85,"appScm":76.25,"coScm":76.25,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":100,"ageGroup":"14","gender":"M","lcm":68.27,"appScm":66.67,"coScm":66.67,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":100,"ageGroup":"14","gender":"F","lcm":76.08,"appScm":74.48,"coScm":74.48,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":100,"ageGroup":"15","gender":"M","lcm":66.16,"appScm":64.56,"coScm":64.56,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":100,"ageGroup":"15","gender":"F","lcm":75.21,"appScm":73.61,"coScm":73.61,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":100,"ageGroup":"16","gender":"M","lcm":65.47,"appScm":63.87,"coScm":63.87,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":100,"ageGroup":"16","gender":"F","lcm":74.45,"appScm":72.85,"coScm":72.85,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":200,"ageGroup":"10&U","gender":"M","lcm":239.54,"appScm":237.14,"coScm":237.14,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":200,"ageGroup":"10&U","gender":"F","lcm":246.28,"appScm":243.88,"coScm":243.88,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":200,"ageGroup":"11","gender":"M","lcm":234.3,"appScm":231.9,"coScm":231.9,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":200,"ageGroup":"11","gender":"F","lcm":229.73,"appScm":227.33,"coScm":227.33,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":200,"ageGroup":"12","gender":"M","lcm":221.5,"appScm":219.1,"coScm":219.1,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":200,"ageGroup":"12","gender":"F","lcm":216.11,"appScm":213.71,"coScm":213.71,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":200,"ageGroup":"13","gender":"M","lcm":211.11,"appScm":208.71,"coScm":208.71,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":200,"ageGroup":"13","gender":"F","lcm":202.76,"appScm":200.36,"coScm":200.36,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":200,"ageGroup":"14","gender":"M","lcm":202.03,"appScm":199.63,"coScm":199.63,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":200,"ageGroup":"14","gender":"F","lcm":201.86,"appScm":199.46,"coScm":199.46,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":200,"ageGroup":"15","gender":"M","lcm":184.04,"appScm":181.64,"coScm":181.64,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":200,"ageGroup":"15","gender":"F","lcm":201.27,"appScm":198.87,"coScm":198.87,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":200,"ageGroup":"16","gender":"M","lcm":183.74,"appScm":181.34,"coScm":181.34,"delta":0},{"standard":"Level 2","stroke":"Backstroke","distance":200,"ageGroup":"16","gender":"F","lcm":200.69,"appScm":198.29,"coScm":198.29,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":200,"ageGroup":"10&U","gender":"M","lcm":289.31,"appScm":285.31,"coScm":285.31,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":200,"ageGroup":"10&U","gender":"F","lcm":275.1,"appScm":271.1,"coScm":271.1,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":200,"ageGroup":"11","gender":"M","lcm":275.5,"appScm":271.5,"coScm":271.5,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":200,"ageGroup":"11","gender":"F","lcm":262.43,"appScm":258.43,"coScm":258.43,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":200,"ageGroup":"12","gender":"M","lcm":253,"appScm":249,"coScm":249,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":200,"ageGroup":"12","gender":"F","lcm":247.33,"appScm":243.33,"coScm":243.33,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":200,"ageGroup":"13","gender":"M","lcm":236.69,"appScm":232.69,"coScm":232.69,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":200,"ageGroup":"13","gender":"F","lcm":238.84,"appScm":234.84,"coScm":234.84,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":200,"ageGroup":"14","gender":"M","lcm":228.78,"appScm":224.78,"coScm":224.78,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":200,"ageGroup":"14","gender":"F","lcm":231.41,"appScm":227.41,"coScm":227.41,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":200,"ageGroup":"15","gender":"M","lcm":218.27,"appScm":214.27,"coScm":214.27,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":200,"ageGroup":"15","gender":"F","lcm":230.68,"appScm":226.68,"coScm":226.68,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":200,"ageGroup":"16","gender":"M","lcm":214.57,"appScm":210.57,"coScm":210.57,"delta":0},{"standard":"Level 2","stroke":"Breaststroke","distance":200,"ageGroup":"16","gender":"F","lcm":229.96,"appScm":225.96,"coScm":225.96,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":200,"ageGroup":"10&U","gender":"M","lcm":219,"appScm":215.8,"coScm":215.8,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":200,"ageGroup":"10&U","gender":"F","lcm":218.24,"appScm":215.04,"coScm":215.04,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":200,"ageGroup":"11","gender":"M","lcm":215.53,"appScm":212.33,"coScm":212.33,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":200,"ageGroup":"11","gender":"F","lcm":201.03,"appScm":197.83,"coScm":197.83,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":200,"ageGroup":"12","gender":"M","lcm":188.68,"appScm":185.48,"coScm":185.48,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":200,"ageGroup":"12","gender":"F","lcm":179.36,"appScm":176.16,"coScm":176.16,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":200,"ageGroup":"13","gender":"M","lcm":167.45,"appScm":164.25,"coScm":164.25,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":200,"ageGroup":"13","gender":"F","lcm":171.14,"appScm":167.94,"coScm":167.94,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":200,"ageGroup":"14","gender":"M","lcm":157.43,"appScm":154.23,"coScm":154.23,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":200,"ageGroup":"14","gender":"F","lcm":170.74,"appScm":167.54,"coScm":167.54,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":200,"ageGroup":"15","gender":"M","lcm":153.22,"appScm":150.02,"coScm":150.02,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":200,"ageGroup":"15","gender":"F","lcm":170.34,"appScm":167.14,"coScm":167.14,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":200,"ageGroup":"16","gender":"M","lcm":151.2,"appScm":148,"coScm":148,"delta":0},{"standard":"Level 2","stroke":"Freestyle","distance":200,"ageGroup":"16","gender":"F","lcm":169.9,"appScm":166.7,"coScm":166.7,"delta":0},{"standard":"Level 2","stroke":"Individual Medley","distance":200,"ageGroup":"10&U","gender":"M","lcm":235.8,"appScm":232.6,"coScm":232.6,"delta":0},{"standard":"Level 2","stroke":"Individual Medley","distance":200,"ageGroup":"10&U","gender":"F","lcm":244.06,"appScm":240.86,"coScm":240.86,"delta":0},{"standard":"Level 2","stroke":"Individual Medley","distance":200,"ageGroup":"11","gender":"M","lcm":225.04,"appScm":221.84,"coScm":221.84,"delta":0},{"standard":"Level 2","stroke":"Individual Medley","distance":200,"ageGroup":"11","gender":"F","lcm":220.94,"appScm":217.74,"coScm":217.74,"delta":0},{"standard":"Level 2","stroke":"Individual Medley","distance":200,"ageGroup":"12","gender":"M","lcm":203.04,"appScm":199.84,"coScm":199.84,"delta":0},{"standard":"Level 2","stroke":"Individual Medley","distance":200,"ageGroup":"12","gender":"F","lcm":210.2,"appScm":207,"coScm":207,"delta":0},{"standard":"Level 2","stroke":"Individual Medley","distance":200,"ageGroup":"13","gender":"M","lcm":183.96,"appScm":180.76,"coScm":180.76,"delta":0},{"standard":"Level 2","stroke":"Individual Medley","distance":200,"ageGroup":"13","gender":"F","lcm":197.35,"appScm":194.15,"coScm":194.15,"delta":0},{"standard":"Level 2","stroke":"Individual Medley","distance":200,"ageGroup":"14","gender":"M","lcm":175.3,"appScm":172.1,"coScm":172.1,"delta":0},{"standard":"Level 2","stroke":"Individual Medley","distance":200,"ageGroup":"14","gender":"F","lcm":192.78,"appScm":189.58,"coScm":189.58,"delta":0},{"standard":"Level 2","stroke":"Individual Medley","distance":200,"ageGroup":"15","gender":"M","lcm":167.55,"appScm":164.35,"coScm":164.35,"delta":0},{"standard":"Level 2","stroke":"Individual Medley","distance":200,"ageGroup":"15","gender":"F","lcm":192.1,"appScm":188.9,"coScm":188.9,"delta":0},{"standard":"Level 2","stroke":"Individual Medley","distance":200,"ageGroup":"16","gender":"M","lcm":165.64,"appScm":162.44,"coScm":162.44,"delta":0},{"standard":"Level 2","stroke":"Individual Medley","distance":200,"ageGroup":"16","gender":"F","lcm":191.65,"appScm":188.45,"coScm":188.45,"delta":0}];
+  const TURN_SECONDS = { Freestyle: 0.8, Backstroke: 0.6, Breaststroke: 1.0, Butterfly: 0.7, "Individual Medley": 0.8 };
+  const SHORT_NAME = {
+    "SA Senior National Aquatic Championships": "SA Senior Nationals",
+    "SA National Junior Championships (SANJ)": "SANJ",
+    "SA National Youth Championships": "SA Youth Nationals",
+    "2026 SA Short Course Championships": "SA Short Course Champs",
+    "Grand Prix": "Grand Prix",
+    "Level 3": "Level 3",
+    "Level 2": "Level 2",
+  };
+
+  // Formats seconds the same way the app displays a swim time (m:ss.hh).
+  function formatTime(seconds) {
+    const totalMs = Math.round(seconds * 1000);
+    const ms = totalMs % 1000;
+    const totalS = Math.floor(totalMs / 1000);
+    const s = totalS % 60;
+    const totalM = Math.floor(totalS / 60);
+    const m = totalM % 60;
+    const h = Math.floor(totalM / 60);
+    const decStr = ms % 10 !== 0 ? String(ms).padStart(3, "0") : String(Math.floor(ms / 10)).padStart(2, "0");
+    const ss = String(s).padStart(2, "0");
+    if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${ss}.${decStr}`;
+    if (m > 0) return `${m}:${ss}.${decStr}`;
+    return `${totalS}.${decStr}`;
+  }
+
+  const standardFilter = document.getElementById("standard-filter");
+  [...new Set(ROWS.map(r => r.standard))].forEach(s => {
+    const opt = document.createElement("option");
+    opt.value = s; opt.textContent = SHORT_NAME[s] ?? s;
+    standardFilter.appendChild(opt);
+  });
+  const strokeFilter = document.getElementById("stroke-filter");
+  [...new Set(ROWS.map(r => r.stroke))].sort().forEach(s => {
+    const opt = document.createElement("option");
+    opt.value = s; opt.textContent = s;
+    strokeFilter.appendChild(opt);
+  });
+
+  const NO_AGE_BRACKET = "__none__";
+  const ageFilter = document.getElementById("age-filter");
+  [...new Set(ROWS.map(r => r.ageGroup || ""))]
+    .sort((a, b) => ageSortValue(a) - ageSortValue(b))
+    .forEach(a => {
+      const opt = document.createElement("option");
+      opt.value = a || NO_AGE_BRACKET; opt.textContent = a || "No age bracket";
+      ageFilter.appendChild(opt);
+    });
+
+  const genderFilter = document.getElementById("gender-filter");
+  const groupByEl = document.getElementById("group-by");
+  const tbody = document.getElementById("tbody");
+  const mobileCardsEl = document.getElementById("mobile-cards");
+  const searchEl = document.getElementById("search");
+  const countEl = document.getElementById("row-count");
+
+  // One row per distinct event actually on file, worked out once - not tied
+  // to the filters/sort above, since this is a fixed reference table.
+  const howBody = document.getElementById("how-tbody");
+  const distinctEvents = new Map();
+  for (const r of ROWS) distinctEvents.set(`${r.stroke}|${r.distance}`, { stroke: r.stroke, distance: r.distance });
+  [...distinctEvents.values()]
+    .sort((a, b) => a.distance - b.distance || a.stroke.localeCompare(b.stroke))
+    .forEach(({ stroke, distance }) => {
+      const extraTurns = distance / 50;
+      const seconds = TURN_SECONDS[stroke] * extraTurns;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${distance}m ${stroke}</td><td class="num">${extraTurns}</td><td class="num">${seconds.toFixed(2)}s</td>`;
+      howBody.appendChild(tr);
+    });
+
+  // ── "Try it yourself" calculator ──────────────────────────────────────
+  // Accepts the same time formats the app itself accepts (SS.hh[h],
+  // M:SS.hh[h], H:MM:SS.hh[h]) so a pasted time behaves the same here as it
+  // would in the app.
+  // A real swim time never gets close to this (even a slow age-group
+  // swimmer's 1650 Freestyle, the longest event here, finishes well under
+  // 45 minutes) - anything past it is garbage, not a real result someone
+  // is trying to convert.
+  const MAX_SWIM_SECONDS = 45 * 60;
+
+  function parseSwimTime(str) {
+    if (!str) return null;
+    str = str.trim().replace(",", ".");
+    let seconds = null;
+    let m;
+    if ((m = str.match(/^(\d{1,2}):(\d{2}):(\d{2})\.(\d{2,3})$/))) {
+      const h = +m[1], mins = +m[2], s = +m[3], dec = +m[4].padEnd(3, "0");
+      if (mins >= 60 || s >= 60) return null;
+      seconds = h * 3600 + mins * 60 + s + dec / 1000;
+    } else if ((m = str.match(/^(\d{1,2}):(\d{2})\.(\d{2,3})$/))) {
+      const mins = +m[1], s = +m[2], dec = +m[3].padEnd(3, "0");
+      if (s >= 60) return null;
+      seconds = mins * 60 + s + dec / 1000;
+    } else if ((m = str.match(/^(\d{1,4})\.(\d{2,3})$/))) {
+      const s = +m[1], dec = +m[2].padEnd(3, "0");
+      seconds = s + dec / 1000;
+    } else {
+      return null;
+    }
+    if (seconds <= 0 || seconds > MAX_SWIM_SECONDS) return null;
+    return seconds;
+  }
+
+  // Strips anything that isn't a digit, colon, period or comma as the user
+  // types - keeps garbage (letters, symbols, emoji, pasted text) out of the
+  // field entirely rather than only rejecting it after the fact.
+  function sanitizeTimeInput(str) {
+    return str.replace(/[^0-9:.,]/g, "");
+  }
+
+  // Each calculation gets its own independent row - built once as real DOM
+  // (not re-rendered from a string template on every keystroke, which would
+  // steal focus out of the time input the user is typing into). Only the
+  // result text inside a row updates as its own inputs change.
+  const calcRowsContainer = document.getElementById("calc-rows");
+
+  function createCalcRow() {
+    const row = document.createElement("div");
+    row.className = "calc-row";
+    row.innerHTML = `
+      <div class="calc-grid">
+        <label>Stroke<select class="calc-stroke"></select></label>
+        <label>Distance<select class="calc-distance"></select></label>
+        <label>Direction
+          <select class="calc-direction">
+            <option value="toSC">Long Course &rarr; Short Course</option>
+            <option value="toLC">Short Course &rarr; Long Course</option>
+          </select>
+        </label>
+        <label>Time<input type="text" class="calc-time" placeholder="e.g. 1:23.45" inputmode="decimal" maxlength="12" autocomplete="off"></label>
+        <button type="button" class="calc-remove" aria-label="Remove this calculation">&times;</button>
+      </div>
+      <div class="calc-result">Enter a time above to see the converted result.</div>
+    `;
+
+    const strokeEl = row.querySelector(".calc-stroke");
+    const distanceEl = row.querySelector(".calc-distance");
+    const directionEl = row.querySelector(".calc-direction");
+    const timeEl = row.querySelector(".calc-time");
+    const resultEl = row.querySelector(".calc-result");
+    const removeBtn = row.querySelector(".calc-remove");
+
+    Object.keys(TURN_SECONDS).forEach(stroke => {
+      const opt = document.createElement("option");
+      opt.value = stroke; opt.textContent = stroke;
+      strokeEl.appendChild(opt);
+    });
+
+    function populateDistances() {
+      const distances = [...distinctEvents.values()]
+        .filter(e => e.stroke === strokeEl.value)
+        .map(e => e.distance)
+        .sort((a, b) => a - b);
+      distanceEl.innerHTML = distances.map(d => `<option value="${d}">${d}m</option>`).join("");
+    }
+
+    function compute() {
+      timeEl.value = sanitizeTimeInput(timeEl.value);
+      const stroke = strokeEl.value;
+      const distance = Number(distanceEl.value);
+      const seconds = parseSwimTime(timeEl.value);
+
+      if (seconds == null) {
+        resultEl.innerHTML = timeEl.value.trim()
+          ? '<span class="calc-error">Enter a valid swim time, e.g. 1:23.45 (formats: 23.45, 1:23.45, 1:02:03.45)</span>'
+          : "Enter a time above to see the converted result.";
+        return;
+      }
+
+      const extraTurns = distance / 50;
+      const offset = TURN_SECONDS[stroke] * extraTurns;
+      const toShortCourse = directionEl.value === "toSC";
+      const converted = toShortCourse ? seconds - offset : seconds + offset;
+
+      if (converted <= 0) {
+        resultEl.innerHTML = '<span class="calc-error">That time is too fast for this conversion to make sense.</span>';
+        return;
+      }
+
+      const fromLabel = toShortCourse ? "Long Course" : "Short Course";
+      const toLabel = toShortCourse ? "Short Course" : "Long Course";
+      const sign = toShortCourse ? "&minus;" : "+";
+      resultEl.innerHTML = `
+        <div class="calc-answer">${formatTime(converted)} <span style="font-size:16px; font-weight:400;">${toLabel}</span></div>
+        <div class="calc-detail">${fromLabel} ${formatTime(seconds)} ${sign} ${offset.toFixed(2)}s (${extraTurns} extra turns &times; ${TURN_SECONDS[stroke]}s per turn)</div>
+      `;
+    }
+
+    populateDistances();
+    compute();
+
+    strokeEl.addEventListener("change", () => { populateDistances(); compute(); });
+    distanceEl.addEventListener("change", compute);
+    directionEl.addEventListener("change", compute);
+    timeEl.addEventListener("input", compute);
+    removeBtn.addEventListener("click", () => {
+      if (calcRowsContainer.children.length <= 1) return; // always keep at least one row
+      row.remove();
+    });
+
+    return row;
+  }
+
+  document.getElementById("calc-add-row").addEventListener("click", () => {
+    calcRowsContainer.appendChild(createCalcRow());
+  });
+
+  calcRowsContainer.appendChild(createCalcRow());
+
+  // Everything a search term could plausibly mean, in one lower-cased blob
+  // per row - standard name (both full and short form), event, age, gender,
+  // and all three times - so a search matches on any of them, not just
+  // stroke/distance/age.
+  function searchText(r) {
+    return [
+      r.standard, SHORT_NAME[r.standard], r.stroke, `${r.distance}m`, r.distance,
+      r.ageGroup, r.gender === "M" ? "male" : "female",
+      formatTime(r.lcm), formatTime(r.appScm),
+    ].filter(Boolean).join(" ").toLowerCase();
+  }
+
+  // Extracts the leading number from an age group ("13" -> 13, "10&U" -> 10,
+  // "" -> -1 so open/no-bracket rows sort first) for a sensible numeric
+  // ordering instead of plain string sort ("10&U" landing before "2").
+  function ageSortValue(ageGroup) {
+    if (!ageGroup) return -1;
+    const digits = ageGroup.match(/\d+/);
+    return digits ? Number(digits[0]) : 0;
+  }
+
+  // The order qualifying lists should always appear in - not alphabetical,
+  // a deliberately chosen priority. Anything not in this list (there
+  // shouldn't be any) sorts after everything named here.
+  const STANDARD_ORDER = [
+    "SA Senior National Aquatic Championships",
+    "SA National Junior Championships (SANJ)",
+    "SA National Youth Championships",
+    "2026 SA Short Course Championships",
+    "Grand Prix",
+    "Level 3",
+    "Level 2",
+  ];
+  function standardRank(standard) {
+    const i = STANDARD_ORDER.indexOf(standard);
+    return i === -1 ? STANDARD_ORDER.length : i;
+  }
+
+  function sortValue(r, key) {
+    switch (key) {
+      case "standard": return standardRank(r.standard);
+      case "age": return ageSortValue(r.ageGroup);
+      case "gender": return r.gender;
+      case "lcm": return r.lcm;
+      case "appScm": return r.appScm;
+      default: return 0;
+    }
+  }
+
+  // Column-header sort state (independent of grouping below).
+  let sortKey = null, sortDir = 1;
+  // Which group headings are currently collapsed - keyed by the group's own
+  // label, cleared whenever the grouping dimension itself changes since a
+  // label from one dimension ("Freestyle") means nothing under another
+  // ("Male").
+  const collapsedGroups = new Set();
+
+  function escapeHtml(str) {
+    return String(str).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function compareRows(a, b) {
+    if (sortKey === "event") {
+      if (a.distance !== b.distance) return (a.distance - b.distance) * sortDir;
+      return a.stroke.localeCompare(b.stroke) * sortDir;
+    }
+    if (!sortKey) return 0;
+    const av = sortValue(a, sortKey), bv = sortValue(b, sortKey);
+    if (typeof av === "number" && typeof bv === "number") return (av - bv) * sortDir;
+    return String(av).localeCompare(String(bv)) * sortDir;
+  }
+
+  // Fallback ordering used inside a group (or across the whole table) when
+  // no column sort is active - keeps output stable and scannable instead of
+  // whatever order the source data happened to be in. Qualifying list comes
+  // first (in STANDARD_ORDER's priority, not alphabetically), then event.
+  function defaultCompare(a, b) {
+    const ra = standardRank(a.standard), rb = standardRank(b.standard);
+    if (ra !== rb) return ra - rb;
+    if (a.distance !== b.distance) return a.distance - b.distance;
+    return a.stroke.localeCompare(b.stroke);
+  }
+
+  function groupKeyValue(r, key) {
+    switch (key) {
+      case "standard": return SHORT_NAME[r.standard] ?? r.standard;
+      case "stroke": return r.stroke;
+      case "age": return r.ageGroup || "No age bracket";
+      case "gender": return r.gender === "M" ? "Male" : "Female";
+      default: return null;
+    }
+  }
+
+  document.querySelectorAll("thead th[data-key]").forEach(th => {
+    th.addEventListener("click", () => {
+      const key = th.dataset.key;
+      sortDir = sortKey === key ? -sortDir : 1;
+      sortKey = key;
+      render();
+    });
+  });
+
+  function updateSortArrows() {
+    document.querySelectorAll("thead th[data-key]").forEach(th => {
+      const arrow = th.querySelector(".sort-arrow");
+      arrow.textContent = th.dataset.key === sortKey ? (sortDir === 1 ? "▲" : "▼") : "";
+    });
+  }
+
+  function render() {
+    const terms = searchEl.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const standard = standardFilter.value;
+    const stroke = strokeFilter.value;
+    const gender = genderFilter.value;
+    const age = ageFilter.value;
+    const groupBy = groupByEl.value;
+
+    const rows = ROWS.filter(r => {
+      if (standard && r.standard !== standard) return false;
+      if (stroke && r.stroke !== stroke) return false;
+      if (gender && r.gender !== gender) return false;
+      if (age && (r.ageGroup || NO_AGE_BRACKET) !== age) return false;
+      if (!terms.length) return true;
+      const haystack = searchText(r);
+      return terms.every(term => haystack.includes(term));
+    });
+
+    const secondary = sortKey ? compareRows : defaultCompare;
+    if (groupBy) {
+      rows.sort((a, b) => {
+        const ga = groupKeyValue(a, groupBy), gb = groupKeyValue(b, groupBy);
+        if (ga !== gb) {
+          // Grouping by qualifying list uses the same fixed priority order
+          // as the default view, not alphabetical.
+          if (groupBy === "standard") return standardRank(a.standard) - standardRank(b.standard);
+          return String(ga).localeCompare(String(gb));
+        }
+        return secondary(a, b);
+      });
+    } else {
+      rows.sort(secondary);
+    }
+
+    countEl.textContent = rows.length + " / " + ROWS.length;
+    updateSortArrows();
+
+    function rowHtml(r) {
+      return `<tr>
+        <td class="std-name">${SHORT_NAME[r.standard] ?? r.standard}</td>
+        <td class="event-name">${r.distance}m ${r.stroke}</td>
+        <td>${r.ageGroup || "&ndash;"}</td>
+        <td>${r.gender === "M" ? "Male" : "Female"}</td>
+        <td class="num">${formatTime(r.lcm)}</td>
+        <td class="num">${formatTime(r.appScm)}</td>
+      </tr>`;
+    }
+
+    // Same row, as a self-contained card for the phone-width layout - every
+    // value carries its own label here, since there's no shared header row
+    // the way the table has.
+    function cardHtml(r) {
+      return `<div class="mcard">
+        <div class="mcard-head">
+          <span class="mcard-event">${r.distance}m ${r.stroke}</span>
+          <span class="mcard-standard">${SHORT_NAME[r.standard] ?? r.standard}</span>
+        </div>
+        <div class="mcard-tags">
+          ${r.ageGroup ? `<span class="tag">${r.ageGroup}</span>` : ""}
+          <span class="tag">${r.gender === "M" ? "Male" : "Female"}</span>
+        </div>
+        <div class="mcard-times">
+          <div class="mcard-time"><span class="mcard-label">Long Course</span><span class="mcard-value">${formatTime(r.lcm)}</span></div>
+          <div class="mcard-time"><span class="mcard-label">SCM Time</span><span class="mcard-value">${formatTime(r.appScm)}</span></div>
+        </div>
+      </div>`;
+    }
+
+    let html = "";
+    let cardsHtml = "";
+    if (groupBy) {
+      const groups = [];
+      let current = null;
+      for (const r of rows) {
+        const g = groupKeyValue(r, groupBy);
+        if (!current || current.key !== g) {
+          current = { key: g, rows: [] };
+          groups.push(current);
+        }
+        current.rows.push(r);
+      }
+      for (const grp of groups) {
+        const isCollapsed = collapsedGroups.has(grp.key);
+        const arrow = isCollapsed ? "▸" : "▾";
+        html += `<tr class="group-row" data-group="${escapeHtml(grp.key)}">
+          <td colspan="6"><span class="group-chevron">${arrow}</span>${escapeHtml(grp.key)}<span class="group-count">${grp.rows.length}</span></td>
+        </tr>`;
+        cardsHtml += `<div class="mcard-group" data-group="${escapeHtml(grp.key)}"><span class="group-chevron">${arrow}</span>${escapeHtml(grp.key)}<span class="group-count">${grp.rows.length}</span></div>`;
+        if (!isCollapsed) {
+          for (const r of grp.rows) { html += rowHtml(r); cardsHtml += cardHtml(r); }
+        }
+      }
+    } else {
+      for (const r of rows) { html += rowHtml(r); cardsHtml += cardHtml(r); }
+    }
+    tbody.innerHTML = html;
+    mobileCardsEl.innerHTML = cardsHtml;
+  }
+
+  function toggleGroup(key) {
+    if (collapsedGroups.has(key)) collapsedGroups.delete(key);
+    else collapsedGroups.add(key);
+    render();
+  }
+  tbody.addEventListener("click", (e) => {
+    const groupRow = e.target.closest(".group-row");
+    if (groupRow) toggleGroup(groupRow.dataset.group);
+  });
+  mobileCardsEl.addEventListener("click", (e) => {
+    const groupRow = e.target.closest(".mcard-group");
+    if (groupRow) toggleGroup(groupRow.dataset.group);
+  });
+
+  searchEl.addEventListener("input", render);
+  standardFilter.addEventListener("change", render);
+  strokeFilter.addEventListener("change", render);
+  genderFilter.addEventListener("change", render);
+  ageFilter.addEventListener("change", render);
+  groupByEl.addEventListener("change", () => { collapsedGroups.clear(); render(); });
+  render();
+</script>
+
+</body>
+</html>
